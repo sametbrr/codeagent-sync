@@ -1,0 +1,45 @@
+# Binaries
+bin/codeagent-sync
+bin/codeagent-sync.exe
+bin/codeagent-sync-*
+
+# Root-level build output. `make build` targets ./bin, but a plain
+# `go build -o codeagent-sync ./cmd/codeagent-sync` drops a ~55MB binary here,
+# which a `git add -A` would commit into history permanently.
+/codeagent-sync
+/codeagent-sync.exe
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local config (contains secrets)
+.codeagent-sync/
+.env
+.env.*
+
+# Personal working notes (not part of the project)
+notes/

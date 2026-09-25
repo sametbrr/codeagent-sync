@@ -1,0 +1,78 @@
+.PHONY: build install clean test fmt lint setup-hooks check
+
+BINARY_NAME=codeagent-sync
+VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_DIR=bin
+GO=go
+
+# Build flags
+LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION)"
+
+# Default target
+all: build
+
+# Build the binary
+build:
+	$(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/codeagent-sync
+
+# Install to ~/.local/bin, where the hooks of automatic sync expect it
+INSTALL_DIR?=$(HOME)/.local/bin
+install:
+	mkdir -p $(INSTALL_DIR)
+	$(GO) build $(LDFLAGS) -o $(INSTALL_DIR)/$(BINARY_NAME) ./cmd/codeagent-sync
+
+# Clean build artifacts
+clean:
+	rm -rf $(BUILD_DIR)
+
+# Run tests
+test:
+	$(GO) test -v ./...
+
+# Format code
+fmt:
+	$(GO) fmt ./...
+
+# Lint code (requires golangci-lint)
+lint:
+	golangci-lint run
+
+# Build for multiple platforms
+build-all: build-darwin build-linux build-windows
+	cd $(BUILD_DIR) && shasum -a 256 $(BINARY_NAME)-* > checksums.txt
+
+build-darwin:
+	GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./cmd/codeagent-sync
+	GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./cmd/codeagent-sync
+
+build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/codeagent-sync
+	GOOS=linux GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./cmd/codeagent-sync
+
+build-windows:
+	GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./cmd/codeagent-sync
+	GOOS=windows GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-arm64.exe ./cmd/codeagent-sync
+
+# Development: build and run
+run: build
+	./$(BUILD_DIR)/$(BINARY_NAME)
+
+# Download dependencies
+deps:
+	$(GO) mod download
+	$(GO) mod tidy
+
+# Setup git hooks
+setup-hooks:
+	git config core.hooksPath .githooks
+	@echo "Git hooks installed. Pre-commit will run tests and lint."
+
+# Run all checks (same as pre-commit)
+check:
+	@echo "Checking formatting..."
+	@test -z "$$(gofmt -l .)" || (echo "Run 'make fmt' to fix formatting" && exit 1)
+	@echo "Running go vet..."
+	$(GO) vet ./...
+	@echo "Running tests..."
+	$(GO) test ./... -short
+	@echo "All checks passed!"

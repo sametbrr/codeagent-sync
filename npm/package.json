@@ -1,0 +1,30 @@
+{
+  "name": "codeagent-sync",
+  "version": "0.0.0",
+  "description": "Keep Claude Code and Codex configuration (skills, settings, MCP servers, hooks) the same on every machine, end-to-end encrypted",
+  "bin": {
+    "codeagent-sync": "codeagent-sync.js"
+  },
+  "scripts": {
+    "postinstall": "node codeagent-sync.js --codeagent-sync-install"
+  },
+  "files": [
+    "codeagent-sync.js"
+  ],
+  "keywords": ["claude", "claude-code", "codex", "sync", "skills", "mcp", "cli", "r2", "s3", "age"],
+  "author": "Samet Birer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sametbrr/codeagent-sync.git"
+  },
+  "homepage": "https://github.com/sametbrr/codeagent-sync#readme",
+  "bugs": {
+    "url": "https://github.com/sametbrr/codeagent-sync/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"]
+}

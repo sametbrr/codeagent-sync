@@ -1,0 +1,407 @@
+package storage
+
+import (
+	"testing"
+)
+
+func TestStorageConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  StorageConfig
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "empty config",
+			config:  StorageConfig{},
+			wantErr: true,
+			errMsg:  "bucket is required",
+		},
+		{
+			name: "missing provider",
+			config: StorageConfig{
+				Bucket: "test-bucket",
+			},
+			wantErr: true,
+			errMsg:  "provider is required",
+		},
+		{
+			name: "invalid provider",
+			config: StorageConfig{
+				Provider: "invalid",
+				Bucket:   "test-bucket",
+			},
+			wantErr: true,
+			errMsg:  "unsupported provider",
+		},
+		// R2 tests
+		{
+			name: "valid R2 config",
+			config: StorageConfig{
+				Provider:        ProviderR2,
+				Bucket:          "test-bucket",
+				AccountID:       "account123",
+				AccessKeyID:     "access123",
+				SecretAccessKey: "secret123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "R2 missing account ID",
+			config: StorageConfig{
+				Provider:        ProviderR2,
+				Bucket:          "test-bucket",
+				AccessKeyID:     "access123",
+				SecretAccessKey: "secret123",
+			},
+			wantErr: true,
+			errMsg:  "account_id is required",
+		},
+		{
+			name: "R2 missing access key",
+			config: StorageConfig{
+				Provider:        ProviderR2,
+				Bucket:          "test-bucket",
+				AccountID:       "account123",
+				SecretAccessKey: "secret123",
+			},
+			wantErr: true,
+			errMsg:  "access_key_id is required",
+		},
+		{
+			name: "R2 missing secret key",
+			config: StorageConfig{
+				Provider:    ProviderR2,
+				Bucket:      "test-bucket",
+				AccountID:   "account123",
+				AccessKeyID: "access123",
+			},
+			wantErr: true,
+			errMsg:  "secret_access_key is required",
+		},
+		// S3 tests
+		{
+			name: "valid S3 config",
+			config: StorageConfig{
+				Provider:        ProviderS3,
+				Bucket:          "test-bucket",
+				AccessKeyID:     "access123",
+				SecretAccessKey: "secret123",
+				Region:          "us-east-1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "S3 missing access key",
+			config: StorageConfig{
+				Provider:        ProviderS3,
+				Bucket:          "test-bucket",
+				SecretAccessKey: "secret123",
+				Region:          "us-east-1",
+			},
+			wantErr: true,
+			errMsg:  "access_key_id is required",
+		},
+		{
+			name: "S3 missing secret key",
+			config: StorageConfig{
+				Provider:    ProviderS3,
+				Bucket:      "test-bucket",
+				AccessKeyID: "access123",
+				Region:      "us-east-1",
+			},
+			wantErr: true,
+			errMsg:  "secret_access_key is required",
+		},
+		{
+			name: "S3 missing region",
+			config: StorageConfig{
+				Provider:        ProviderS3,
+				Bucket:          "test-bucket",
+				AccessKeyID:     "access123",
+				SecretAccessKey: "secret123",
+			},
+			wantErr: true,
+			errMsg:  "region is required",
+		},
+		// GCS tests
+		{
+			name: "valid GCS config with ADC",
+			config: StorageConfig{
+				Provider:  ProviderGCS,
+				Bucket:    "test-bucket",
+				ProjectID: "project123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid GCS config with credentials file",
+			config: StorageConfig{
+				Provider:        ProviderGCS,
+				Bucket:          "test-bucket",
+				ProjectID:       "project123",
+				CredentialsFile: "/path/to/creds.json",
+			},
+			wantErr: false,
+		},
+		{
+			name: "GCS missing project ID",
+			config: StorageConfig{
+				Provider: ProviderGCS,
+				Bucket:   "test-bucket",
+			},
+			wantErr: true,
+			errMsg:  "project_id is required",
+		},
+		// WebDAV tests
+		{
+			name: "valid WebDAV config",
+			config: StorageConfig{
+				Provider:       ProviderWebDAV,
+				WebDAVURL:      "https://cloud.example.com/remote.php/dav/files/user/",
+				WebDAVUsername: "user",
+				WebDAVPassword: "app-password",
+				PathPrefix:     "codeagent-sync",
+			},
+			wantErr: false,
+		},
+		{
+			name: "WebDAV missing URL",
+			config: StorageConfig{
+				Provider:       ProviderWebDAV,
+				WebDAVUsername: "user",
+				WebDAVPassword: "app-password",
+			},
+			wantErr: true,
+			errMsg:  "webdav_url is required",
+		},
+		{
+			name: "WebDAV missing username",
+			config: StorageConfig{
+				Provider:       ProviderWebDAV,
+				WebDAVURL:      "https://cloud.example.com/remote.php/dav/files/user/",
+				WebDAVPassword: "app-password",
+			},
+			wantErr: true,
+			errMsg:  "webdav_username is required",
+		},
+		{
+			name: "WebDAV missing password",
+			config: StorageConfig{
+				Provider:       ProviderWebDAV,
+				WebDAVURL:      "https://cloud.example.com/remote.php/dav/files/user/",
+				WebDAVUsername: "user",
+			},
+			wantErr: true,
+			errMsg:  "webdav_password is required",
+		},
+		{
+			name: "WebDAV does not require bucket",
+			config: StorageConfig{
+				Provider:       ProviderWebDAV,
+				WebDAVURL:      "https://cloud.example.com/remote.php/dav/files/user/",
+				WebDAVUsername: "user",
+				WebDAVPassword: "app-password",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.Validate()
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Validate() expected error containing %q, got nil", tt.errMsg)
+					return
+				}
+				if tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
+					t.Errorf("Validate() error = %v, want error containing %q", err, tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Validate() unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestStorageConfig_GetEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   StorageConfig
+		expected string
+	}{
+		{
+			name: "R2 with account ID",
+			config: StorageConfig{
+				Provider:  ProviderR2,
+				AccountID: "abc123",
+			},
+			expected: "https://abc123.r2.cloudflarestorage.com",
+		},
+		{
+			name: "R2 with custom endpoint",
+			config: StorageConfig{
+				Provider:  ProviderR2,
+				AccountID: "abc123",
+				Endpoint:  "https://custom.endpoint.com",
+			},
+			expected: "https://custom.endpoint.com",
+		},
+		{
+			name: "S3 with region",
+			config: StorageConfig{
+				Provider: ProviderS3,
+				Region:   "us-west-2",
+			},
+			expected: "https://s3.us-west-2.amazonaws.com",
+		},
+		{
+			name: "S3 with custom endpoint",
+			config: StorageConfig{
+				Provider: ProviderS3,
+				Region:   "us-west-2",
+				Endpoint: "https://custom.s3.endpoint.com",
+			},
+			expected: "https://custom.s3.endpoint.com",
+		},
+		{
+			name: "GCS returns empty (uses default)",
+			config: StorageConfig{
+				Provider: ProviderGCS,
+			},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.config.GetEndpoint()
+			if got != tt.expected {
+				t.Errorf("GetEndpoint() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRegionFromEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		expected string
+	}{
+		{
+			name:     "empty endpoint yields empty region",
+			endpoint: "",
+			expected: "",
+		},
+		{
+			name:     "Backblaze B2 endpoint",
+			endpoint: "https://s3.us-west-004.backblazeb2.com",
+			expected: "us-west-004",
+		},
+		{
+			name:     "Backblaze B2 eu endpoint",
+			endpoint: "https://s3.eu-central-003.backblazeb2.com",
+			expected: "eu-central-003",
+		},
+		{
+			name:     "Wasabi endpoint",
+			endpoint: "https://s3.us-east-1.wasabisys.com",
+			expected: "us-east-1",
+		},
+		{
+			name:     "endpoint without scheme",
+			endpoint: "s3.us-west-004.backblazeb2.com",
+			expected: "us-west-004",
+		},
+		{
+			name:     "endpoint with port",
+			endpoint: "https://s3.us-west-004.backblazeb2.com:443",
+			expected: "us-west-004",
+		},
+		{
+			name:     "R2 style host is not extractable",
+			endpoint: "https://abc123.r2.cloudflarestorage.com",
+			expected: "auto",
+		},
+		{
+			name:     "MinIO style host is not extractable",
+			endpoint: "https://minio.example.com:9000",
+			expected: "auto",
+		},
+		{
+			name:     "AWS global endpoint does not mistake amazonaws for region",
+			endpoint: "https://s3.amazonaws.com",
+			expected: "auto",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := RegionFromEndpoint(tt.endpoint)
+			if got != tt.expected {
+				t.Errorf("RegionFromEndpoint(%q) = %q, want %q", tt.endpoint, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNormalizeEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		expected string
+	}{
+		{
+			name:     "empty stays empty",
+			endpoint: "",
+			expected: "",
+		},
+		{
+			name:     "bare host gets https scheme",
+			endpoint: "s3.eu-central-003.backblazeb2.com",
+			expected: "https://s3.eu-central-003.backblazeb2.com",
+		},
+		{
+			name:     "bare host with port gets https scheme",
+			endpoint: "minio.example.com:9000",
+			expected: "https://minio.example.com:9000",
+		},
+		{
+			name:     "https endpoint unchanged",
+			endpoint: "https://s3.us-west-004.backblazeb2.com",
+			expected: "https://s3.us-west-004.backblazeb2.com",
+		},
+		{
+			name:     "http endpoint scheme preserved",
+			endpoint: "http://minio.local:9000",
+			expected: "http://minio.local:9000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NormalizeEndpoint(tt.endpoint)
+			if got != tt.expected {
+				t.Errorf("NormalizeEndpoint(%q) = %q, want %q", tt.endpoint, got, tt.expected)
+			}
+		})
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
