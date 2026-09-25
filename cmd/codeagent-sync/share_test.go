@@ -114,3 +114,28 @@ func TestScanShareUnshareAndMark(t *testing.T) {
 		t.Errorf("registry after mark:\n%s", reg)
 	}
 }
+
+func TestPathsRules(t *testing.T) {
+	m := newCLIMachine(t)
+	m.mustRun("paths", "include", "claude/plans/**")
+	m.mustRun("paths", "exclude", "claude/settings.json#permissions", "--local")
+	if got := m.read(".codeagent-sync/sync.yaml"); !strings.Contains(got, "claude/plans/**") {
+		t.Errorf("sync.yaml:\n%s", got)
+	}
+	if got := m.read(".codeagent-sync/sync.local.yaml"); !strings.Contains(got, "permissions") {
+		t.Errorf("sync.local.yaml:\n%s", got)
+	}
+	out := m.mustRun("paths")
+	for _, want := range []string{"plans/**", "kept per machine: settings.json#permissions"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("paths lacks %q:\n%s", want, out)
+		}
+	}
+	if code, _, errOut := m.run("paths", "include", "claude/projects/**"); code != 1 || !strings.Contains(errOut, "never synced") {
+		t.Errorf("including sessions: exit %d, %s", code, errOut)
+	}
+	m.mustRun("paths", "reset", "claude/plans/**")
+	if got := m.read(".codeagent-sync/sync.yaml"); strings.Contains(got, "plans") {
+		t.Errorf("reset left the rule:\n%s", got)
+	}
+}

@@ -33,6 +33,9 @@ type Root struct {
 	// Needs names the root whose directory must exist for this root to be
 	// synced: a tool that is not installed on a machine is left alone there.
 	Needs string
+	// Hidden maps structured files to patterns of items that keep this
+	// machine's own version (set by the rules; see Rules).
+	Hidden map[string][]string
 }
 
 // Root names.
@@ -134,7 +137,7 @@ func Roots(d platform.Dirs) []Root {
 			// keys and state next to it never leave the machine.
 			Name:       Codeagent,
 			Dir:        d.State,
-			Include:    []string{"registry.yaml"},
+			Include:    []string{"registry.yaml", SharedRulesFile, "machines/*.yaml"},
 			Exclude:    commonExclude,
 			Structured: map[string]string{"registry.yaml": structured.Decisions},
 		},
@@ -158,6 +161,10 @@ func Active(roots []Root, dirExists func(string) bool) []Root {
 
 // Format returns the structured format of rel in root, if it has one.
 func (r Root) Format(rel string) string { return r.Structured[rel] }
+
+// HiddenItems returns the patterns of items of rel that keep this machine's
+// own version.
+func (r Root) HiddenItems(rel string) []string { return r.Hidden[rel] }
 
 // Find returns the root named name.
 func Find(roots []Root, name string) (Root, bool) {

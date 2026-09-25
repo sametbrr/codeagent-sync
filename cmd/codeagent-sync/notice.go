@@ -12,6 +12,7 @@ import (
 
 	"github.com/sametbrr/codeagent-sync/internal/compat"
 	"github.com/sametbrr/codeagent-sync/internal/engine"
+	"github.com/sametbrr/codeagent-sync/internal/inventory"
 	"github.com/sametbrr/codeagent-sync/internal/platform"
 	"github.com/sametbrr/codeagent-sync/internal/registry"
 )
@@ -66,6 +67,25 @@ func gatherNotice(s *sharing, eng *engine.Engine, res *engine.Result, syncErr er
 	if res != nil {
 		for _, n := range res.Notices {
 			items = append(items, noticeItem{ID: "notice:" + n, Text: n})
+		}
+	}
+
+	if all, err := inventory.Load(s.dirs.State); err == nil {
+		var here inventory.Machine
+		if _, name, _ := eng.LastSync(); name != "" {
+			for _, m := range all {
+				if m.Name == name {
+					here = m
+				}
+			}
+		}
+		if here.Name != "" {
+			for _, m := range inventory.Compare(here, all) {
+				if m.Here == "" {
+					items = append(items, noticeItem{ID: "missing:" + m.Name,
+						Text: fmt.Sprintf("%s is installed on the machine %s but not here. To install it: %s", m.Name, m.On, installHint(m))})
+				}
+			}
 		}
 	}
 

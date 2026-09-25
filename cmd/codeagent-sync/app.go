@@ -53,14 +53,26 @@ func newEngine(dirs platform.Dirs, store storage.ObjectStore, cipher envelope.Ci
 	if resolved, err := filepath.EvalSymlinks(dirs.Home); err == nil && resolved != dirs.Home {
 		aliases = append(aliases, resolved)
 	}
+	roots, _ := syncRoots(dirs)
 	return &engine.Engine{
 		Store:    store,
 		Cipher:   cipher,
-		Roots:    tools.Roots(dirs),
+		Roots:    roots,
 		Mapper:   homepath.New(dirs.Home, platform.Current(), aliases...),
 		OS:       platform.Current(),
 		StateDir: dirs.State,
 	}
+}
+
+// syncRoots returns what this machine syncs: the defaults changed by the
+// shared and the local rules. Rules that cannot apply are returned and
+// skipped.
+func syncRoots(dirs platform.Dirs) ([]tools.Root, []error) {
+	shared, local, err := tools.LoadRules(dirs.State)
+	if err != nil {
+		return tools.Roots(dirs), []error{err}
+	}
+	return tools.WithRules(tools.Roots(dirs), shared.Merge(local))
 }
 
 // variants returns the skills marked as deliberately separate for each tool.

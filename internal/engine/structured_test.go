@@ -12,6 +12,7 @@ import (
 	"github.com/sametbrr/codeagent-sync/internal/envelope"
 	"github.com/sametbrr/codeagent-sync/internal/platform"
 	"github.com/sametbrr/codeagent-sync/internal/structured"
+	"github.com/sametbrr/codeagent-sync/internal/tools"
 )
 
 const settingsRel = ".claude/settings.json"
@@ -262,4 +263,51 @@ func TestDecisionsRecordedOnTwoMachinesMerge(t *testing.T) {
 	}
 	a.quiet()
 	b.quiet()
+}
+
+// withRules applies sync rules to a machine, as its rule files would.
+func withRules(t *testing.T, m *machine, r tools.Rules) {
+	t.Helper()
+	roots, problems := tools.WithRules(m.eng.Roots, r)
+	if len(problems) > 0 {
+		t.Fatal(problems)
+	}
+	m.eng.Roots = roots
+}
+
+func TestAPathLeftOutIsNotDeletedAnywhere(t *testing.T) {
+	_, a, b := sharedSettings(t)
+	a.write(".claude/look-again/note.md", "v1")
+	a.sync(Options{})
+	b.sync(Options{})
+
+	withRules(t, a, tools.Rules{Exclude: []string{"claude/look-again/**"}})
+	a.remove(".claude/look-again/note.md")
+	b.write(".claude/look-again/note.md", "v2 from b")
+	a.sync(Options{})
+	b.sync(Options{})
+	if a.exists(".claude/look-again/note.md") {
+		t.Error("a got a file it leaves out")
+	}
+	if got := b.read(".claude/look-again/note.md"); got != "v2 from b" {
+		t.Errorf("b's file = %q; a's leaving it out must not delete it", got)
+	}
+}
+
+func TestSettingsKeptPerMachine(t *testing.T) {
+	_, a, b := sharedSettings(t)
+	withRules(t, a, tools.Rules{Exclude: []string{"claude/settings.json#effortLevel"}})
+	a.write(settingsRel, `{"model": "sonnet", "effortLevel": "low", "hooks": {}}`)
+	b.write(settingsRel, `{"model": "opus", "effortLevel": "max", "hooks": {}}`)
+	a.sync(Options{})
+	if res := b.sync(Options{}); len(res.Conflicts) != 0 {
+		t.Fatalf("conflicts: %v", kinds(res.Conflicts))
+	}
+	a.sync(Options{})
+	if jsonField(t, b, settingsRel, "model") != "sonnet" || jsonField(t, a, settingsRel, "model") != "sonnet" {
+		t.Errorf("model did not sync:\na %s\nb %s", a.read(settingsRel), b.read(settingsRel))
+	}
+	if jsonField(t, a, settingsRel, "effortLevel") != "low" || jsonField(t, b, settingsRel, "effortLevel") != "max" {
+		t.Errorf("effortLevel crossed machines:\na %s\nb %s", a.read(settingsRel), b.read(settingsRel))
+	}
 }

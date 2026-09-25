@@ -132,6 +132,16 @@ func (a *app) runInit(ctx context.Context, o initOptions) error {
 	if err := a.firstSync(ctx, newEngine(dirs, store, crypto.NewEncryptorFromIdentity(id)), o.yes); err != nil {
 		return err
 	}
+	if _, _, missing := missingHere(ctx, dirs); len(missing) > 0 {
+		a.printf("\n%sYour other machines have more installed:%s\n", colorBold, colorReset)
+		for _, m := range missing {
+			if m.Here != "" {
+				a.printf("    %-16s %s here, %s on %s\n", m.Name, m.Here, m.Version, m.On)
+			} else {
+				a.printf("    %-16s %s\n", m.Name, installHint(m))
+			}
+		}
+	}
 	return a.offerAuto(ctx, dirs, o.yes)
 }
 
@@ -284,6 +294,9 @@ func homeRelative(p, home string) string {
 	rel, err := filepath.Rel(home, p)
 	if err != nil || strings.HasPrefix(rel, "..") {
 		return p
+	}
+	if rel == "." {
+		return "~"
 	}
 	return "~" + string(os.PathSeparator) + rel
 }

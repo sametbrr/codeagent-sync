@@ -273,3 +273,40 @@ func TestAutoEnableEdgeCases(t *testing.T) {
 		t.Errorf("the notice was not kept for the real session:\n%s", out)
 	}
 }
+
+func TestMachinesShowWhatIsMissingHere(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses shell scripts as programs")
+	}
+	a, b := newSyncedPair(t)
+	tools := t.TempDir()
+	for name, out := range map[string]string{"codex": "codex-cli 0.157.0", "codegraph": "1.0.0"} {
+		if err := os.WriteFile(filepath.Join(tools, name), []byte("#!/bin/sh\necho '"+out+"'\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.write(".claude.json", `{"mcpServers": {"codegraph": {"command": "codegraph", "args": ["serve"]}}}`)
+	t.Setenv("PATH", tools)
+	a.mustRun("machines")
+	a.mustRun("sync", "--yes")
+
+	t.Setenv("PATH", t.TempDir())
+	b.mustRun("sync")
+	var got struct {
+		Machines    []map[string]any `json:"machines"`
+		MissingHere []struct {
+			Name string `json:"name"`
+			On   string `json:"on"`
+		} `json:"missing_here"`
+	}
+	if err := json.Unmarshal([]byte(b.mustRun("--json", "machines")), &got); err != nil {
+		t.Fatal(err)
+	}
+	missing := map[string]bool{}
+	for _, m := range got.MissingHere {
+		missing[m.Name] = true
+	}
+	if len(got.Machines) != 2 || !missing["codex"] || !missing["codegraph"] {
+		t.Errorf("machines = %d, missing here = %+v", len(got.Machines), got.MissingHere)
+	}
+}

@@ -53,7 +53,33 @@ func (e *Engine) format(key string) (structured.Format, bool) {
 	if !found || r.Format(rel) == "" {
 		return nil, false
 	}
-	return structured.Get(r.Format(rel))
+	f, ok := structured.Get(r.Format(rel))
+	if !ok {
+		return nil, false
+	}
+	return structured.Hiding(f, r.HiddenItems(rel)), true
+}
+
+// pinHidden makes the items this machine keeps to itself (rules like
+// claude/settings.json#permissions) read as their last synced versions, so
+// they are neither sent nor taken away from other machines.
+func (e *Engine) pinHidden(l *entry.Entry) {
+	r, found := tools.Find(e.Roots, l.Root)
+	if !found || len(r.HiddenItems(l.Rel)) == 0 {
+		return
+	}
+	f, ok := e.format(l.Key())
+	if !ok {
+		return
+	}
+	items, err := f.Parse(l.Content)
+	if err != nil {
+		return
+	}
+	base, _ := f.Parse(e.loadBase(l.Key()))
+	items = structured.Pin(items, base, r.HiddenItems(l.Rel))
+	l.Content = f.Render(items)
+	l.Hash = structured.Fingerprint(items)
 }
 
 func fileExists(p string) bool {

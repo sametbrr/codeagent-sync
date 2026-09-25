@@ -50,6 +50,11 @@ func (a *app) syncCmd(use, short string, mode syncMode) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if !dryRun {
+				if dirs, err := platform.LocalDirs(); err == nil {
+					recordMachine(runContext(cmd), dirs, false)
+				}
+			}
 			return a.report(res, dryRun)
 		},
 	}

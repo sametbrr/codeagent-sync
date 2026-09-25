@@ -411,6 +411,9 @@ func (a *app) hookSync(ctx context.Context, now time.Time) {
 			hookLog(dirs.State, "sync: "+summary(res), now)
 		}
 	}
+	if res != nil {
+		recordMachine(ctx, dirs, false)
+	}
 	s, err := a.sharing()
 	if err != nil {
 		return

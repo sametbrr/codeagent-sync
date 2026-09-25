@@ -227,6 +227,14 @@ func (c *Client) BucketExists(ctx context.Context) (bool, error) {
 		if errors.As(err, &notFound) || errors.As(err, &noSuchBucket) {
 			return false, nil
 		}
+		var re *awshttp.ResponseError
+		if errors.As(err, &re) && re.HTTPStatusCode() == 403 {
+			// R2 answers 403, not 404, when the token may not see the bucket,
+			// whether or not it exists.
+			return false, fmt.Errorf("the credentials may not use the bucket %q (HTTP 403): it does not exist and "+
+				"they may not create it, or the API token is limited to other buckets. Give the token read and "+
+				"write access to this bucket (for R2: an Object Read & Write token for it), creating the bucket first if needed", c.bucket)
+		}
 		return false, fmt.Errorf("failed to check bucket: %w", err)
 	}
 	return true, nil

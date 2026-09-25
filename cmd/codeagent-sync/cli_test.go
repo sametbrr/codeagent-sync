@@ -119,7 +119,7 @@ func TestCommandLineAcrossMachines(t *testing.T) {
 
 	b.write(".agents/skills/foo/SKILL.md", "edited on b")
 	b.mustRun("sync")
-	if out := a.mustRun("sync"); !strings.Contains(out, "1 from your other machines") {
+	if out := a.mustRun("sync"); !strings.Contains(out, "agents/skills/foo/SKILL.md") {
 		t.Errorf("sync on a:\n%s", out)
 	}
 	if got := a.read(".agents/skills/foo/SKILL.md"); got != "edited on b" {

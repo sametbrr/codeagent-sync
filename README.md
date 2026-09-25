@@ -34,6 +34,26 @@ under your home directory are written portably, so machines with different
 user names (or systems) get their own paths. An MCP server whose command is
 not installed on a machine is held back there until it is.
 
+### Choosing what syncs
+
+```bash
+codeagent-sync paths                                   # what syncs, and the rules
+codeagent-sync paths include claude/plans/**           # sync more
+codeagent-sync paths exclude claude/look-again/**      # sync less
+codeagent-sync paths exclude claude-state/.claude.json # not Claude Code's MCP servers
+codeagent-sync paths exclude claude/settings.json#permissions --local
+codeagent-sync paths reset claude/plans/**             # drop a rule
+```
+
+Rules are `<root>/<pattern>` (roots: `claude`, `codex`, `agents`,
+`claude-state`, `home`, `codeagent`). They live in
+`~/.codeagent-sync/sync.yaml`, which syncs so every machine follows them, and
+with `--local` in `sync.local.yaml`, for one machine. A path left out stops
+syncing but is deleted nowhere. After a `#`, an exclude names items of a
+settings file (`settings.json` keys, `config.toml` tables such as
+`mcp_servers.*`, `.claude.json` MCP servers): each machine keeps its own
+version of them. Credentials, sessions and history can never be included.
+
 ## Install
 
 With npm or pnpm (Node 18 or later):
@@ -137,6 +157,20 @@ asks the other tool's CLI for a second opinion on each skill, read-only.
 
 Decisions live in `~/.codeagent-sync/registry.yaml`, which syncs, so a
 question answered on one machine is not asked again on another.
+
+## Setting up another machine like this one
+
+```bash
+codeagent-sync machines
+```
+
+shows, for every machine, how Claude Code, Codex and the programs MCP
+servers start are installed — versions and the command that installed each
+(native installer, npm, Homebrew, pipx, uv, pip) — and what this machine
+lacks, with the command to install it. Each machine keeps its own file in
+`~/.codeagent-sync/machines/`, which syncs; syncs refresh it twice a day.
+`init` and `doctor` show what is missing too, and with automatic sync the
+agent mentions it once. Nothing is installed without you.
 
 ## When something is wrong
 

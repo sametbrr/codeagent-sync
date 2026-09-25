@@ -202,6 +202,9 @@ func (e *Engine) round(ctx context.Context, st *State, opts Options, res *Result
 		if s, ok := st.Entries[l.Key()]; ok && l.Format != "" {
 			e.withHeld(l, s.Held)
 		}
+		if l.Format != "" {
+			e.pinHidden(l)
+		}
 		p.local[l.Key()] = l
 	}
 	for i := range listed {
@@ -328,7 +331,7 @@ func (p *planner) relevant(key string) bool {
 	if !ok {
 		return false
 	}
-	if _, known := tools.Find(p.roots, root); !known {
+	if r, known := tools.Find(p.roots, root); !known || !r.Includes(rel) {
 		return false
 	}
 	return platform.ValidateRelPath(rel, p.e.OS) == nil
@@ -380,7 +383,9 @@ func (p *planner) plan() []*Action {
 		if !ok {
 			continue
 		}
-		if _, known := tools.Find(p.roots, root); !known {
+		if r, known := tools.Find(p.roots, root); !known || !r.Includes(rel) {
+			// Not synced here (a rule leaves it out): left alone on both
+			// sides, not taken for a deletion.
 			continue
 		}
 

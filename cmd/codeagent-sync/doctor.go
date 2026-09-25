@@ -96,6 +96,11 @@ func (a *app) doctor(ctx context.Context) []finding {
 		}
 	}
 
+	if _, problems := syncRoots(dirs); len(problems) > 0 {
+		for _, p := range problems {
+			add("rules", "warn", "skipped: %v", p)
+		}
+	}
 	cfg, err := config.Load(dirs.State)
 	if err != nil {
 		add("setup", "fail", "%v", err)
@@ -167,6 +172,7 @@ func (a *app) doctor(ctx context.Context) []finding {
 	}
 
 	out = append(out, a.hookFindings(ctx, dirs)...)
+	out = append(out, machineFindings(ctx, dirs)...)
 	return append(out, a.layoutFindings(dirs)...)
 }
 
