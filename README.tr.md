@@ -15,9 +15,8 @@ Claude Code ve Codex yapılandırmasını — talimatlar, ayarlar, skill'ler, ag
 ## Hızlı Başlangıç
 
 ```bash
-git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
-make install            # builds ~/.local/bin/codeagent-sync
-codeagent-sync init     # storage, passphrase, first sync
+npm install -g codeagent-sync   # or: pnpm add -g codeagent-sync
+codeagent-sync init             # storage, passphrase, first sync
 ```
 
 Diğer her makinede: kurulu bir makinede `codeagent-sync join-code`, yeni makinede `codeagent-sync init --join <kod>`.
@@ -44,30 +43,30 @@ Diğer her makinede: kurulu bir makinede `codeagent-sync join-code`, yeni makine
 - macOS, Linux ya da Windows
 - Claude Code ve/veya Codex (bir makinede kurulu olmayan araca orada dokunulmaz)
 - Cloudflare R2, S3, GCS ya da bir WebDAV sunucusunda bir kova ve ona okuma-yazma yetkisi olan kimlik bilgileri
-- Kaynaktan derlemek için Go 1.24 ya da üzeri
+- npm ya da pnpm ile kurmak için Node.js 18 ya da üzeri (veya hazır ikili dosya, ya da kaynaktan derlemek için Go 1.24 ve üzeri)
 
 ---
 
 ## Kurulum
 
 ```bash
-git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
-make install
-```
-
-Bu komut `~/.local/bin/codeagent-sync` dosyasını derler. Her makinede aynı yerde tut: otomatik senkronun kancaları programı oradan başlatır.
-
-<details>
-<summary><strong>npm, pnpm ve hazır ikili dosyalar (ilk sürümden itibaren)</strong></summary>
-
-```bash
 npm install -g codeagent-sync
 pnpm add -g codeagent-sync
 ```
 
-Paket, sistemine uygun programı sürümün checksum'larıyla doğrulayıp `~/.local/bin/codeagent-sync` konumuna kurar (Windows'ta `%USERPROFILE%\.local\bin`). pnpm kurulum betiklerini varsayılan olarak çalıştırmaz; o durumda program ilk çalıştırmada kurulur.
+Paket, sistemine uygun programı sürümün checksum'larıyla doğrulayıp `~/.local/bin/codeagent-sync` konumuna kurar (Windows'ta `%USERPROFILE%\.local\bin`). pnpm kurulum betiklerini varsayılan olarak çalıştırmaz; o durumda program ilk çalıştırmada kurulur. Her makinede aynı yerde tut: otomatik senkronun kancaları programı oradan başlatır. `codeagent-sync update` onu en son sürümle değiştirir.
 
-macOS, Linux ve Windows için ikili dosyalar [releases](https://github.com/sametbrr/codeagent-sync/releases) sayfasında: sistemine uygun olanın adını `codeagent-sync` yapıp `~/.local/bin` içine koy. `codeagent-sync update` onu en son sürümle değiştirir.
+<details>
+<summary><strong>Hazır ikili dosyalar ve kaynaktan derleme</strong></summary>
+
+macOS, Linux ve Windows için ikili dosyalar [releases](https://github.com/sametbrr/codeagent-sync/releases) sayfasında: sistemine uygun olanın adını `codeagent-sync` yapıp `~/.local/bin` içine koy.
+
+Kaynaktan derlemek için (Go 1.24 ya da üzeri):
+
+```bash
+git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
+make install
+```
 
 </details>
 

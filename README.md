@@ -15,9 +15,8 @@ Keeps Claude Code and Codex configuration — instructions, settings, skills, ag
 ## Quick Start
 
 ```bash
-git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
-make install            # builds ~/.local/bin/codeagent-sync
-codeagent-sync init     # storage, passphrase, first sync
+npm install -g codeagent-sync   # or: pnpm add -g codeagent-sync
+codeagent-sync init             # storage, passphrase, first sync
 ```
 
 On every other machine: `codeagent-sync join-code` on a machine that is set up, then `codeagent-sync init --join <code>` on the new one.
@@ -44,30 +43,30 @@ On every other machine: `codeagent-sync join-code` on a machine that is set up, 
 - macOS, Linux or Windows
 - Claude Code and/or Codex (a tool that is not installed on a machine is left alone there)
 - A bucket on Cloudflare R2, S3, GCS or a WebDAV server, with credentials that can read and write it
-- Go 1.24 or later to build from source
+- Node.js 18 or later to install with npm or pnpm (or a release binary, or Go 1.24 or later to build from source)
 
 ---
 
 ## Installation
 
 ```bash
-git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
-make install
-```
-
-This builds `~/.local/bin/codeagent-sync`. Keep it at the same place on every machine: the hooks of automatic sync start it from there.
-
-<details>
-<summary><strong>npm, pnpm and release binaries (from the first release on)</strong></summary>
-
-```bash
 npm install -g codeagent-sync
 pnpm add -g codeagent-sync
 ```
 
-The package installs the program for your system at `~/.local/bin/codeagent-sync` (on Windows `%USERPROFILE%\.local\bin`), checked against the release's checksums. pnpm skips install scripts by default; the first run installs it then.
+The package installs the program for your system at `~/.local/bin/codeagent-sync` (on Windows `%USERPROFILE%\.local\bin`), checked against the release's checksums. pnpm skips install scripts by default; the first run installs it then. Keep it at the same place on every machine: the hooks of automatic sync start it from there. `codeagent-sync update` replaces it with the latest release.
 
-Binaries for macOS, Linux and Windows are on the [releases](https://github.com/sametbrr/codeagent-sync/releases) page: rename the one for your system to `codeagent-sync` and put it in `~/.local/bin`. `codeagent-sync update` replaces it with the latest release.
+<details>
+<summary><strong>Release binaries and building from source</strong></summary>
+
+Binaries for macOS, Linux and Windows are on the [releases](https://github.com/sametbrr/codeagent-sync/releases) page: rename the one for your system to `codeagent-sync` and put it in `~/.local/bin`.
+
+To build from source (Go 1.24 or later):
+
+```bash
+git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
+make install
+```
 
 </details>
 

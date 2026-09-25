@@ -9,7 +9,8 @@
     "postinstall": "node codeagent-sync.js --codeagent-sync-install"
   },
   "files": [
-    "codeagent-sync.js"
+    "codeagent-sync.js",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "keywords": ["claude", "claude-code", "codex", "sync", "skills", "mcp", "cli", "r2", "s3", "age"],
   "author": "Samet Birer",
