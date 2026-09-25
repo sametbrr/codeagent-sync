@@ -1,197 +1,189 @@
+[![CI](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](go.mod)
+
 # codeagent-sync
 
-Keep the configuration of your coding agents — Claude Code and Codex — the
-same on every machine: instructions, settings, skills, agents, hooks, MCP
-servers and plugin lists. Everything is encrypted with
-[age](https://age-encryption.org) before it leaves the machine.
+Keeps Claude Code and Codex configuration — instructions, settings, skills, agents, hooks, MCP servers and plugin lists — the same on every machine, end-to-end encrypted.
 
-It also looks after what the two tools could share: a skill or an MCP server
-you add to one of them is judged for the other, and moved into the shared
-layout when you agree.
+> 🇹🇷 Türkçe için [README.tr.md](README.tr.md)
 
-Sessions and history are not synced.
+[Quick Start](#quick-start) • [Installation](#installation) • [Usage](#usage) • [What Is Synced](#what-is-synced) • [Troubleshooting](#troubleshooting) • [Security](#security)
 
-## What is synced
+---
 
-| Where | What |
-|---|---|
-| `~/.claude` | `CLAUDE.md`, `settings.json`, `agents/`, `commands/`, `hooks/`, `skills/`, `look-again/`, `statusline.sh`, the plugin lists |
-| `~/.claude.json` | only `mcpServers` |
-| `~/.codex` | `AGENTS.md`, `config.toml`, `hooks.json`, `agents/` |
-| `~/.agents/skills` | skills both tools read |
-| `~/skills-lock.json` | the lock file of `npx skills` |
-| `~/.codeagent-sync/registry.yaml` | the decisions about what is shared |
-
-Never synced: sessions, history, credentials, caches, and what belongs to one
-machine — trusted projects, approved hooks, security approvals, the rest of
-`.claude.json`. A tool that is not installed on a machine is left alone
-there.
-
-Settings files merge item by item: `settings.json` per setting, `.claude.json`
-per MCP server, `config.toml` per setting or table. Two machines changing
-different settings never conflict, and comments in `config.toml` stay. Paths
-under your home directory are written portably, so machines with different
-user names (or systems) get their own paths. An MCP server whose command is
-not installed on a machine is held back there until it is.
-
-### Choosing what syncs
+## Quick Start
 
 ```bash
-codeagent-sync paths                                   # what syncs, and the rules
-codeagent-sync paths include claude/plans/**           # sync more
-codeagent-sync paths exclude claude/look-again/**      # sync less
-codeagent-sync paths exclude claude-state/.claude.json # not Claude Code's MCP servers
-codeagent-sync paths exclude claude/settings.json#permissions --local
-codeagent-sync paths reset claude/plans/**             # drop a rule
+git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
+make install            # builds ~/.local/bin/codeagent-sync
+codeagent-sync init     # storage, passphrase, first sync
 ```
 
-Rules are `<root>/<pattern>` (roots: `claude`, `codex`, `agents`,
-`claude-state`, `home`, `codeagent`). They live in
-`~/.codeagent-sync/sync.yaml`, which syncs so every machine follows them, and
-with `--local` in `sync.local.yaml`, for one machine. A path left out stops
-syncing but is deleted nowhere. After a `#`, an exclude names items of a
-settings file (`settings.json` keys, `config.toml` tables such as
-`mcp_servers.*`, `.claude.json` MCP servers): each machine keeps its own
-version of them. Credentials, sessions and history can never be included.
+On every other machine: `codeagent-sync join-code` on a machine that is set up, then `codeagent-sync init --join <code>` on the new one.
 
-## Install
+---
 
-With npm or pnpm (Node 18 or later):
+## Features
+
+- **Both tools, one layout** — `~/.claude`, `~/.claude.json` (MCP servers only), `~/.codex` and the skills both tools read in `~/.agents/skills`
+- **End-to-end encrypted** — every file is encrypted with [age](https://age-encryption.org) before it leaves the machine; the storage sees names and sizes only
+- **Merges, not overwrites** — settings files merge item by item, so two machines changing different settings never conflict; comments in `config.toml` stay
+- **Portable paths** — home-directory paths are translated, so machines with other user names or systems get their own
+- **Shares between tools** — judges whether a skill or MCP server one tool has works in the other, and shares it when you agree
+- **Automatic** — hooks sync in the background and tell the agent about conflicts and new things to share, once
+- **Your choice of what syncs** — include and exclude rules for every machine or just one, down to a single setting
+- **Machine inventory** — shows how the tools and MCP programs are installed elsewhere and what this machine lacks
+- **Safe** — backups and `undo` for every change, conflicts set aside instead of overwritten, conditional writes against races
+- **Storage** — Cloudflare R2, Amazon S3 and S3-compatible services, Google Cloud Storage, WebDAV
+
+---
+
+## Requirements
+
+- macOS, Linux or Windows
+- Claude Code and/or Codex (a tool that is not installed on a machine is left alone there)
+- A bucket on Cloudflare R2, S3, GCS or a WebDAV server, with credentials that can read and write it
+- Go 1.24 or later to build from source
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/sametbrr/codeagent-sync && cd codeagent-sync
+make install
+```
+
+This builds `~/.local/bin/codeagent-sync`. Keep it at the same place on every machine: the hooks of automatic sync start it from there.
+
+<details>
+<summary><strong>npm, pnpm and release binaries (from the first release on)</strong></summary>
 
 ```bash
 npm install -g codeagent-sync
 pnpm add -g codeagent-sync
 ```
 
-The package installs the program for your system at
-`~/.local/bin/codeagent-sync` (on Windows `%USERPROFILE%\.local\bin`),
-checked against the release's checksums. pnpm skips install scripts by
-default; the first run installs it then.
+The package installs the program for your system at `~/.local/bin/codeagent-sync` (on Windows `%USERPROFILE%\.local\bin`), checked against the release's checksums. pnpm skips install scripts by default; the first run installs it then.
 
-Or download a binary from the
-[releases](https://github.com/sametbrr/codeagent-sync/releases), rename it to
-`codeagent-sync` and put it in `~/.local/bin`. Or build it (Go 1.24 or later):
+Binaries for macOS, Linux and Windows are on the [releases](https://github.com/sametbrr/codeagent-sync/releases) page: rename the one for your system to `codeagent-sync` and put it in `~/.local/bin`. `codeagent-sync update` replaces it with the latest release.
 
-```bash
-make install      # builds ~/.local/bin/codeagent-sync
-```
+</details>
 
-Keep it at the same place on every machine: the hooks of automatic sync
-start it from there. `codeagent-sync update` replaces it with the latest
-release.
+---
 
-## First machine
+## Usage
+
+### Set up the first machine
 
 ```bash
 codeagent-sync init
 ```
 
-`init` asks for the storage — Cloudflare R2, Amazon S3 or an S3-compatible
-service, Google Cloud Storage, or WebDAV — and a passphrase, creates the
-bucket if needed, and runs the first sync. It shows what it will upload
-before it does.
+`init` asks for the storage and a passphrase, creates the bucket if the credentials allow it, lists what it will upload and asks before it does, then offers automatic sync. The passphrase cannot be recovered: keep it in your password manager. Instead of a passphrase you can use an age key file (`--key-file`).
 
-Instead of a passphrase you can use an age key file (`--key-file`).
-
-## Other machines
-
-Either run `init` with the same storage settings and passphrase, or print a
-join code on a machine that is set up:
+### Add another machine
 
 ```bash
 codeagent-sync join-code                 # on a machine that is set up
-codeagent-sync init --join cas1-…        # on the new machine
+codeagent-sync init --join cas1-…        # on the new machine, same passphrase
 ```
 
-The code carries the storage settings, encrypted with the bucket's
-passphrase.
+The code carries the storage settings, encrypted with the bucket's passphrase. On a machine's first sync, files only it has are uploaded only when you confirm; files from the other machines are written with a backup.
 
-On a machine's first sync, files that exist only there are uploaded only
-when you confirm; files from the other machines are written with a backup.
-
-## Every day
+### Every day
 
 ```bash
-codeagent-sync sync       # download others' changes, upload this machine's
-codeagent-sync status     # what a sync would do
-codeagent-sync undo       # restore what the last sync (or share) changed here
-codeagent-sync conflicts  # versions set aside; resolve with --keep local|remote
+codeagent-sync sync        # download others' changes, upload this machine's
+codeagent-sync status      # what a sync would do, changing nothing
+codeagent-sync conflicts   # versions set aside; settle with: conflicts resolve <path> --keep local|remote
+codeagent-sync undo        # take back a change; undo --list shows them all
 ```
 
-`pull` and `push` sync one direction only. `sync`, `status`, `scan`,
-`conflicts`, `doctor` and `auto status` print JSON with `--json`.
+`pull` and `push` sync one direction only. `sync`, `status`, `scan`, `conflicts`, `doctor`, `paths`, `machines` and `auto status` print JSON with `--json`.
 
-### Automatically
+### Sync automatically
 
 ```bash
 codeagent-sync auto enable
 ```
 
-adds hooks to Claude Code and Codex: they sync in the background when a
-session starts and after every answer, and pass what you should hear about —
-a conflict, something new that could be shared — to the agent with your
-next message, once. The hooks are part of the synced settings, so they reach
-your other machines too.
+Adds hooks to Claude Code and Codex: they sync in the background when a session starts and after every answer, and pass what you should hear about — a conflict, something new to share, a program another machine has — to the agent with your next message, once. The hooks are part of the synced settings, so they reach your other machines too. Codex runs new hooks only after you trust them: type `/hooks` in Codex once on each machine.
 
-Codex runs new hooks only after you trust them: type `/hooks` in Codex and
-trust the codeagent-sync hooks, once on each machine. `auto status` shows
-whether it does.
-
-## Sharing between Claude Code and Codex
-
-Skills live in `~/.agents/skills`, which Codex reads; Claude Code reaches each
-shared skill through a link in `~/.claude/skills`.
+### Choose what syncs
 
 ```bash
-codeagent-sync scan                  # what only one tool has, and whether it works in the other
-codeagent-sync share skill:foo       # share it
-codeagent-sync unshare foo --to claude
-codeagent-sync mark mcp:bar --codex-only
+codeagent-sync paths                                    # what syncs, and the rules
+codeagent-sync paths include claude/plans/**            # sync more
+codeagent-sync paths exclude claude/look-again/**       # sync less
+codeagent-sync paths exclude claude-state/.claude.json  # not Claude Code's MCP servers
+codeagent-sync paths exclude claude/settings.json#permissions --local
+codeagent-sync paths reset claude/plans/**              # drop a rule
 ```
 
-`scan` judges by what the files say, and names the file and line of every
-reason: a skill using a Claude Code variable or tool stays with Claude Code;
-an MCP server converts between the tools' formats where it can. What depends
-on one tool is recorded as such, so it is not asked about again. `--deep`
-asks the other tool's CLI for a second opinion on each skill, read-only.
+Rules are `<root>/<pattern>` (roots: `claude`, `codex`, `agents`, `claude-state`, `home`, `codeagent`). They live in `~/.codeagent-sync/sync.yaml`, which syncs so every machine follows them, and with `--local` in `sync.local.yaml`, for one machine. A path left out stops syncing but is deleted nowhere. After a `#`, an exclude names items of a settings file — `settings.json` keys, `config.toml` tables such as `mcp_servers.*`, `.claude.json` MCP servers — and each machine keeps its own version of them.
 
-Decisions live in `~/.codeagent-sync/registry.yaml`, which syncs, so a
-question answered on one machine is not asked again on another.
+### Share between Claude Code and Codex
 
-## Setting up another machine like this one
+```bash
+codeagent-sync scan                      # what only one tool has, and whether it works in the other
+codeagent-sync share skill:foo           # share it
+codeagent-sync unshare foo --to claude   # keep it with one tool again
+codeagent-sync mark mcp:bar --codex-only # record a decision, change nothing
+```
+
+Shared skills live in `~/.agents/skills`, which Codex reads; Claude Code reaches each one through a link in `~/.claude/skills`. `scan` names the file and line of every reason: a skill using a Claude Code variable or tool stays with Claude Code; an MCP server is converted between the tools' formats where it can be. `--deep` asks the other tool's CLI for a second opinion, with no tools and no file access. Decisions live in `~/.codeagent-sync/registry.yaml`, which syncs, so a question answered on one machine is not asked again on another.
+
+### Set up a machine like another
 
 ```bash
 codeagent-sync machines
 ```
 
-shows, for every machine, how Claude Code, Codex and the programs MCP
-servers start are installed — versions and the command that installed each
-(native installer, npm, Homebrew, pipx, uv, pip) — and what this machine
-lacks, with the command to install it. Each machine keeps its own file in
-`~/.codeagent-sync/machines/`, which syncs; syncs refresh it twice a day.
-`init` and `doctor` show what is missing too, and with automatic sync the
-agent mentions it once. Nothing is installed without you.
+Shows how Claude Code, Codex and the programs MCP servers start are installed on each machine — versions and the command that installed each (native installer, npm, Homebrew, pipx, uv, pip) — and what this machine lacks, with the command to install it. Nothing is installed without you.
 
-## When something is wrong
+---
 
-```bash
-codeagent-sync doctor          # setup, storage, key, hooks, layout
-codeagent-sync status --check  # skills and agents the tools would ignore
-```
+## What Is Synced
 
-## Platforms
+| Where | What |
+|---|---|
+| `~/.claude` | `CLAUDE.md`, `settings.json`, `agents/`, `commands/`, `hooks/`, `skills/`, `look-again/`, `statusline.sh`, the plugin lists |
+| `~/.claude.json` | only `mcpServers` |
+| `~/.codex` | `AGENTS.md`, `config.toml`, `hooks.json`, `agents/` |
+| `~/.agents/skills` | the skills both tools read |
+| `~/skills-lock.json` | the lock file of `npx skills` |
+| `~/.codeagent-sync` | `registry.yaml` (sharing decisions), `sync.yaml` (rules), `machines/` (inventories) |
 
-macOS, Linux and Windows. Where Windows allows no symlinks, a shared skill
-becomes a directory junction, or else a copy that codeagent-sync keeps up to
-date.
+Never synced: sessions, history, credentials, caches, and what belongs to one machine — trusted projects, approved hooks, the rest of `.claude.json`. An MCP server whose command is not installed on a machine is held back there until it is.
+
+---
+
+## Troubleshooting
+
+**Something does not sync, or you are not sure why** — run `codeagent-sync doctor`: it checks the setup, storage, key, conditional writes, conflicts, rules, hooks and what this machine lacks.
+
+**"the credentials may not use the bucket (HTTP 403)"** — the API token is limited to other buckets, or the bucket does not exist and the token may not create it. Create the bucket and give the token read and write access to it.
+
+**Codex does not sync automatically** — Codex skips hooks it has not been told to trust: type `/hooks` in Codex and trust the codeagent-sync hooks. `codeagent-sync auto status` shows whether it does.
+
+**A skill works in one tool but not the other** — `codeagent-sync status --check` lists skills and agents a tool would ignore, such as a `SKILL.md` that is a symlink.
+
+---
 
 ## Security
 
-Every file is encrypted with age before upload; the key is derived from the
-passphrase with Argon2id and a random salt kept in the bucket. The storage
-sees file names and sizes, not contents. Conditional writes keep two
-machines syncing at once from overwriting each other.
+Every file is encrypted with age before upload; the key is derived from the passphrase with Argon2id and a random salt kept in the bucket, and a key check catches a wrong passphrase before anything is touched. The storage sees file names and sizes, not contents. Conditional writes keep two machines syncing at once from overwriting each other; deletions are recorded, not lost.
+
+---
+
+## Acknowledgements
+
+Started as a fork of [claude-sync](https://github.com/tawanorg/claude-sync) (MIT); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+MIT — see [LICENSE](LICENSE).
