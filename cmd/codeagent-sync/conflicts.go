@@ -94,7 +94,7 @@ func (a *app) resolveCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&keep, "keep", "", "local or remote")
-	cmd.MarkFlagRequired("keep")
+	_ = cmd.MarkFlagRequired("keep")
 	return cmd
 }
 

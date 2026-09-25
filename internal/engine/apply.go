@@ -151,7 +151,7 @@ func (e *Engine) uploadAll(ctx context.Context, st *State, uploads []*Action, re
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait() // the workers report into res and never fail
 	return retry
 }
 
@@ -452,7 +452,7 @@ func clearPath(p string) error {
 // litter files. A link anywhere inside counts as content.
 func onlyLitter(dir string) bool {
 	clean := true
-	filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		switch {
 		case err != nil, d.Type()&fs.ModeSymlink != 0, !d.IsDir() && !tools.IsLitter(d.Name()):
 			clean = false

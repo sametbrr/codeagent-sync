@@ -92,8 +92,8 @@ func Probe(ctx context.Context, s ObjectStore, prefix string) (ProbeResult, erro
 	matchKey := prefix + "probe-match-" + hex.EncodeToString(id)
 	defer func() {
 		cleanup := context.WithoutCancel(ctx)
-		s.Delete(cleanup, createKey)
-		s.Delete(cleanup, matchKey)
+		_ = s.Delete(cleanup, createKey)
+		_ = s.Delete(cleanup, matchKey)
 	}()
 
 	if _, err := s.Put(ctx, createKey, []byte("1"), Precondition{IfNoneMatch: true}); err != nil {

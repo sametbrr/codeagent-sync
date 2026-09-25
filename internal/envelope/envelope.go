@@ -100,10 +100,11 @@ func Seal(c Cipher, h Header, content []byte) ([]byte, error) {
 
 	var zipped bytes.Buffer
 	zw := gzip.NewWriter(&zipped)
-	zw.Write([]byte(magic))
-	binary.Write(zw, binary.BigEndian, uint32(len(header)))
-	zw.Write(header)
-	zw.Write(content)
+	// Writes to a gzip writer over a buffer fail only through Close.
+	_, _ = zw.Write([]byte(magic))
+	_ = binary.Write(zw, binary.BigEndian, uint32(len(header)))
+	_, _ = zw.Write(header)
+	_, _ = zw.Write(content)
 	if err := zw.Close(); err != nil {
 		return nil, err
 	}

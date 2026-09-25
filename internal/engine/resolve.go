@@ -126,5 +126,5 @@ func (e *Engine) dropConflictCopies(key string) {
 			delete(idx, id)
 		}
 	}
-	e.saveConflicts(idx)
+	_ = e.saveConflicts(idx)
 }

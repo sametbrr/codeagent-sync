@@ -118,7 +118,7 @@ func editHooks(dirs platform.Dirs, what string, change func(hookFile, []byte) ([
 		var backup *engine.Backup // started with the first change, so undo skips no-ops
 		defer func() {
 			if backup != nil {
-				backup.Close()
+				_ = backup.Close()
 			}
 		}()
 		for _, h := range hookFiles(dirs) {

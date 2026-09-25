@@ -53,7 +53,7 @@ func (p *Promoter) step(what string, paths []string, change func() error, kind, 
 		}
 		for _, path := range append(paths, filepath.Join(p.Dirs.State, registry.FileName)) {
 			if err := b.Save(path); err != nil {
-				b.Rollback()
+				_ = b.Rollback() // nothing changed yet but the backup itself
 				return err
 			}
 		}
@@ -332,7 +332,7 @@ func removeItems(drop func(string) bool) func([]structured.Item, structured.Form
 
 func tomlKey(k string) string {
 	for _, r := range k {
-		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-') {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' && r != '-' {
 			q, _ := json.Marshal(k)
 			return string(q)
 		}

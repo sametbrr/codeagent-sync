@@ -242,10 +242,3 @@ func TestEncodeAgeIdentity(t *testing.T) {
 		t.Errorf("Encoded identity is not valid: %v", err)
 	}
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

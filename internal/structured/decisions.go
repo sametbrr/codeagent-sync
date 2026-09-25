@@ -32,8 +32,8 @@ func RenderDecisions(d map[string]string) []byte {
 	b.WriteString(decisionsHeader)
 	enc := yaml.NewEncoder(&b)
 	enc.SetIndent(2)
-	enc.Encode(decisionsFile{Version: 1, Decisions: d}) // a map of strings always encodes
-	enc.Close()
+	_ = enc.Encode(decisionsFile{Version: 1, Decisions: d}) // a map of strings always encodes
+	_ = enc.Close()
 	return b.Bytes()
 }
 

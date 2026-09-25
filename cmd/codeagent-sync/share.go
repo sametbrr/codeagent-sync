@@ -310,7 +310,7 @@ func (a *app) unshareCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&to, "to", "", "claude or codex: the tool that keeps it")
-	cmd.MarkFlagRequired("to")
+	_ = cmd.MarkFlagRequired("to")
 	return cmd
 }
 

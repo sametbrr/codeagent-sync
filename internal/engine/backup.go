@@ -131,7 +131,7 @@ func (b *Backup) Close() error { return b.set.close() }
 // way, and drops the backup: there is nothing left to undo.
 func (b *Backup) Rollback() error {
 	if err := b.set.restoreAll(); err != nil {
-		b.set.close() // keep it for undo
+		_ = b.set.close() // keep it for undo
 		return err
 	}
 	return os.RemoveAll(b.set.dir)

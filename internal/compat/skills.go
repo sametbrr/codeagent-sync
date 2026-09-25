@@ -136,7 +136,7 @@ func evaluateSkill(dir string, to Direction, mcp mcpServers) []Reason {
 		}
 	}
 
-	filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || tools.IsLitter(d.Name()) {
 			return nil
 		}

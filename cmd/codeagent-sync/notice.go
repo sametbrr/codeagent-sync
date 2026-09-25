@@ -228,7 +228,7 @@ func takeNotice(stateDir string, now time.Time) (string, error) {
 func loadQueue(stateDir string) []noticeItem {
 	var items []noticeItem
 	if data, err := os.ReadFile(filepath.Join(stateDir, noticeFile)); err == nil {
-		json.Unmarshal(data, &items)
+		_ = json.Unmarshal(data, &items)
 	}
 	return items
 }
@@ -236,7 +236,7 @@ func loadQueue(stateDir string) []noticeItem {
 func loadNotified(stateDir string) map[string]time.Time {
 	told := map[string]time.Time{}
 	if data, err := os.ReadFile(filepath.Join(stateDir, notifiedFile)); err == nil {
-		json.Unmarshal(data, &told)
+		_ = json.Unmarshal(data, &told) // a damaged file only means telling again
 	}
 	if told == nil { // the file said null
 		told = map[string]time.Time{}
@@ -267,5 +267,5 @@ func hookLog(stateDir, line string, now time.Time) {
 	if len(lines) > 200 {
 		lines = lines[len(lines)-200:]
 	}
-	platform.WriteFileAtomic(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600)
+	_ = platform.WriteFileAtomic(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600) // a log; best effort
 }

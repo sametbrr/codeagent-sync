@@ -26,8 +26,11 @@ func (e *Engine) basePath(key string) string {
 	return filepath.Join(e.StateDir, baseDir, root, filepath.FromSlash(rel))
 }
 
-func (e *Engine) saveBase(key string, synced []byte) error {
-	return platform.WriteFileAtomic(e.basePath(key), synced, 0o600)
+// saveBase keeps what both sides agreed on, for the next merge. It is best
+// effort: without a base, the next change on both sides is reported as a
+// conflict instead of merged, and nothing is lost.
+func (e *Engine) saveBase(key string, synced []byte) {
+	_ = platform.WriteFileAtomic(e.basePath(key), synced, 0o600)
 }
 
 func (e *Engine) loadBase(key string) []byte {

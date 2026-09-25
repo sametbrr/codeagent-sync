@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -172,7 +173,7 @@ func TestPrograms(t *testing.T) {
 			t.Fatal(err)
 		}
 		got, err := Programs(file, "/Users/ad")
-		if err != nil || len(got) != 1 || got[0] != want {
+		if err != nil || len(got) != 1 || got[0] != filepath.FromSlash(want) {
 			t.Errorf("%s: programs = %v, %v", tool, got, err)
 		}
 	}

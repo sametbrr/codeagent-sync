@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # Best-effort clean-up whose failure changes nothing: a leftover
+      # temporary file, a lock or process already gone, a close after the
+      # data was read or flushed and checked.
+      exclude-functions:
+        - os.Remove
+        - os.RemoveAll
+        - os.Chtimes
+        - (*os.File).Close
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (io.WriteCloser).Close
+        - (*os.Process).Kill
+        - (*os/exec.Cmd).Wait
+        - (*github.com/sametbrr/codeagent-sync/internal/platform.FileLock).Unlock
+        # Output to the terminal, and draining input nobody needs.
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.Copy
+  exclusions:
+    rules:
+      - path: (_test\.go|s3fake/)
+        linters:
+          - errcheck
