@@ -134,6 +134,8 @@ codeagent-sync mark mcp:bar --codex-only # record a decision, change nothing
 
 Shared skills live in `~/.agents/skills`, which Codex reads; Claude Code reaches each one through a link in `~/.claude/skills`. `scan` names the file and line of every reason: a skill using a Claude Code variable or tool stays with Claude Code; an MCP server is converted between the tools' formats where it can be. `--deep` asks the other tool's CLI for a second opinion, with no tools and no file access. Decisions live in `~/.codeagent-sync/registry.yaml`, which syncs, so a question answered on one machine is not asked again on another.
 
+A project's own MCP servers are compared too: those in its `.mcp.json` (Claude Code) and in its `.codex/config.toml` (Codex, which reads that file only in projects it trusts). Sharing writes the server into the other file of the same project, and the decision is recorded for that project; name it as `mcp:<project root>/<server>` when the server name alone is ambiguous.
+
 ### Set up a machine like another
 
 ```bash
@@ -154,6 +156,9 @@ Shows how Claude Code, Codex and the programs MCP servers start are installed on
 | `~/.agents/skills` | the skills both tools read |
 | `~/skills-lock.json` | the lock file of `npx skills` |
 | `~/.codeagent-sync` | `registry.yaml` (sharing decisions), `sync.yaml` (rules), `machines/` (inventories) |
+| each project | `.mcp.json`, `CLAUDE.local.md`, `.claude/settings.json`, `.claude/settings.local.json`, `.claude/agents/`, `.claude/commands/`, `.claude/skills/`, `.codex/config.toml`, `.codex/agents/` — except the files git tracks |
+
+Projects are the directories Claude Code and Codex list as projects, recognized by their git remote rather than their path, so a project's configuration reaches the same project wherever it is checked out on another machine. A repository is recognized by its `origin` URL (its https and ssh forms are the same), and a plain directory holding several repositories by the remotes of those repositories. Worktrees, repositories without a remote, and two directories that are the same project are not synced; `codeagent-sync paths` lists the projects found.
 
 Never synced: sessions, history, credentials, caches, and what belongs to one machine — trusted projects, approved hooks, the rest of `.claude.json`. An MCP server whose command is not installed on a machine is held back there until it is.
 

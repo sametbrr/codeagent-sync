@@ -105,6 +105,9 @@ func (p *Promoter) Share(c compat.Candidate) error {
 		if c.Direction == compat.ToClaude {
 			paths = []string{p.claudeJSON()}
 		}
+		if c.Project != "" {
+			paths = []string{projectMCPFile(c)}
+		}
 		change = func() error { return p.shareMCP(c) }
 	case registry.Plugin:
 		paths = []string{p.codexConfig()}
@@ -113,7 +116,19 @@ func (p *Promoter) Share(c compat.Candidate) error {
 		return fmt.Errorf("unknown kind %q", c.Kind)
 	}
 	what := fmt.Sprintf("share %s %s with %s", c.Kind, c.Name, c.Direction.Target())
-	return p.step(what, paths, change, c.Kind, c.Name, registry.Shared)
+	if c.Project != "" {
+		what += " in " + c.Project
+	}
+	return p.step(what, paths, change, c.Kind, c.ID(), registry.Shared)
+}
+
+// projectMCPFile is the file of a project that gets a project MCP server.
+func projectMCPFile(c compat.Candidate) string {
+	rel := compat.ProjectClaudeMCP
+	if c.Direction == compat.ToCodex {
+		rel = compat.ProjectCodexMCP
+	}
+	return platform.LinkTarget(filepath.Join(c.Project, filepath.FromSlash(rel)))
 }
 
 func firstReason(c compat.Candidate) string {
@@ -180,6 +195,11 @@ func userOnlyForCodex(skillDir string) error {
 // tool's form.
 func (p *Promoter) shareMCP(c compat.Candidate) error {
 	server, err := compat.Server(p.Dirs, c.Name, c.Direction)
+	codexFile, claudeFile := p.codexConfig(), p.claudeJSON()
+	if c.Project != "" {
+		server, err = compat.ProjectServer(c.Project, c.Name, c.Direction)
+		codexFile, claudeFile = projectMCPFile(c), projectMCPFile(c)
+	}
 	if err != nil {
 		return err
 	}
@@ -189,7 +209,7 @@ func (p *Promoter) shareMCP(c compat.Candidate) error {
 		if hard := hardReason(reasons); hard != "" {
 			return errors.New(hard)
 		}
-		return p.addItems(p.codexConfig(), structured.CodexConfig, []byte(text))
+		return p.addItems(codexFile, structured.CodexConfig, []byte(text))
 	}
 	value, reasons := compat.CodexToClaude(c.Name, server, exists)
 	if hard := hardReason(reasons); hard != "" {
@@ -199,7 +219,7 @@ func (p *Promoter) shareMCP(c compat.Candidate) error {
 	if err != nil {
 		return err
 	}
-	return p.addItems(p.claudeJSON(), structured.ClaudeMCP, entry)
+	return p.addItems(claudeFile, structured.ClaudeMCP, entry)
 }
 
 func hardReason(reasons []compat.Reason) string {

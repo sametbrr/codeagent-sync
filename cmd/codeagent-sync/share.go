@@ -15,6 +15,7 @@ import (
 	"github.com/sametbrr/codeagent-sync/internal/platform"
 	"github.com/sametbrr/codeagent-sync/internal/promote"
 	"github.com/sametbrr/codeagent-sync/internal/registry"
+	"github.com/sametbrr/codeagent-sync/internal/tools"
 )
 
 // runTool runs a tool's own command when sharing needs one; nil runs it for
@@ -93,10 +94,10 @@ with its tool for good. Decisions sync to your other machines.`,
 			for _, c := range cands {
 				switch c.Verdict {
 				case compat.Blocked:
-					s.env.Registry.Set(c.Kind, c.Name, toolOnly(c.Direction))
+					s.env.Registry.Set(c.Kind, c.ID(), toolOnly(c.Direction))
 					report.Recorded = append(report.Recorded, scanItem{Candidate: c})
 				case compat.Variant:
-					s.env.Registry.Set(c.Kind, c.Name, registry.Variant)
+					s.env.Registry.Set(c.Kind, c.ID(), registry.Variant)
 					report.Recorded = append(report.Recorded, scanItem{Candidate: c})
 				default:
 					report.Shareable = append(report.Shareable, scanItem{Candidate: c})
@@ -134,7 +135,7 @@ func (a *app) offer(cmd *cobra.Command, s *sharing, report scanReport, yes, deep
 		if c.Verdict == compat.Variant {
 			stays = "one version per tool"
 		}
-		a.printf("%s %s %s — %s: %s\n", verdictSymbol[c.Verdict], c.Kind, c.Name, stays, firstText(c))
+		a.printf("%s %s %s%s — %s: %s\n", verdictSymbol[c.Verdict], c.Kind, c.Name, a.inProject(c), stays, firstText(c))
 	}
 	if len(report.Recorded) > 0 {
 		a.info("Recorded. To have one checked again: codeagent-sync mark <name> --forget")
@@ -164,7 +165,7 @@ func (a *app) offer(cmd *cobra.Command, s *sharing, report scanReport, yes, deep
 		case a.interactive():
 			options := []string{"Share it", "Not now", "Keep it with " + c.Direction.Tool() + " only (don't ask again)"}
 			var picked string
-			if err := survey.AskOne(&survey.Select{Message: "Share " + c.Kind + " " + c.Name + " with " + c.Direction.Target() + "?", Options: options}, &picked); err != nil {
+			if err := survey.AskOne(&survey.Select{Message: "Share " + c.Kind + " " + c.Name + a.inProject(c) + " with " + c.Direction.Target() + "?", Options: options}, &picked); err != nil {
 				return err
 			}
 			switch picked {
@@ -184,9 +185,9 @@ func (a *app) offer(cmd *cobra.Command, s *sharing, report scanReport, yes, deep
 				continue
 			}
 			shared++
-			a.success("Shared %s %s with %s.", c.Kind, c.Name, c.Direction.Target())
+			a.success("Shared %s %s%s with %s.", c.Kind, c.Name, a.inProject(c), c.Direction.Target())
 		case "never":
-			s.env.Registry.Set(c.Kind, c.Name, toolOnly(c.Direction))
+			s.env.Registry.Set(c.Kind, c.ID(), toolOnly(c.Direction))
 			if err := s.save(); err != nil {
 				return err
 			}
@@ -220,8 +221,17 @@ func firstText(c compat.Candidate) string {
 	return r.Text
 }
 
+// inProject names the project of a project MCP server, for messages.
+func (a *app) inProject(c compat.Candidate) string {
+	if c.Project == "" {
+		return ""
+	}
+	home, _ := os.UserHomeDir()
+	return " in " + homeRelative(c.Project, home)
+}
+
 func (a *app) describe(c compat.Candidate) {
-	a.printf("%s %s%s %s%s: %s → %s\n", verdictSymbol[c.Verdict], colorBold, c.Kind, c.Name, colorReset, c.Direction.Tool(), c.Direction.Target())
+	a.printf("%s %s%s %s%s%s: %s → %s\n", verdictSymbol[c.Verdict], colorBold, c.Kind, c.Name, colorReset, a.inProject(c), c.Direction.Tool(), c.Direction.Target())
 	for _, r := range c.Reasons {
 		where := ""
 		if r.File != "" {
@@ -254,7 +264,7 @@ func (a *app) shareCmd() *cobra.Command {
 			}
 			var found []compat.Candidate
 			for _, c := range cands {
-				if c.Name == name && (kind == "" || c.Kind == kind) {
+				if (c.Name == name || c.ID() == name) && (kind == "" || c.Kind == kind) {
 					found = append(found, c)
 				}
 			}
@@ -263,7 +273,11 @@ func (a *app) shareCmd() *cobra.Command {
 				return fmt.Errorf("%s is not something only one tool has (already shared, or decided: see codeagent-sync mark)", args[0])
 			case 1:
 			default:
-				return fmt.Errorf("%s is ambiguous; use skill:%s, mcp:%s or plugin:%s", name, name, name, name)
+				var ids []string
+				for _, c := range found {
+					ids = append(ids, c.Kind+":"+c.ID())
+				}
+				return fmt.Errorf("%s is ambiguous; name one of: %s", name, strings.Join(ids, ", "))
 			}
 			c := found[0]
 			a.describe(c)
@@ -274,7 +288,7 @@ func (a *app) shareCmd() *cobra.Command {
 			if err := s.pr.Share(c); err != nil {
 				return err
 			}
-			a.success("Shared %s %s with %s. Run codeagent-sync sync to send it to your other machines.", c.Kind, c.Name, c.Direction.Target())
+			a.success("Shared %s %s%s with %s. Run codeagent-sync sync to send it to your other machines.", c.Kind, c.Name, a.inProject(c), c.Direction.Target())
 			return nil
 		},
 	}
@@ -378,6 +392,9 @@ func splitKind(arg string) (kind, name string) {
 
 // inferKind finds what a bare name refers to.
 func (s *sharing) inferKind(name string) (string, error) {
+	if strings.HasPrefix(name, tools.ProjectRootPrefix) && strings.Contains(name, "/") {
+		return registry.MCP, nil // a project's MCP server: <project root>/<server>
+	}
 	var kinds []string
 	for _, dir := range []string{filepath.Join(s.dirs.Claude, "skills", name), filepath.Join(s.dirs.Agents, "skills", name)} {
 		if _, err := os.Lstat(dir); err == nil {

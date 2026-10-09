@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/sametbrr/codeagent-sync/internal/platform"
+	"github.com/sametbrr/codeagent-sync/internal/projects"
 	"github.com/sametbrr/codeagent-sync/internal/registry"
 )
 
@@ -73,6 +74,19 @@ type Candidate struct {
 	Path string `json:"path,omitempty"`
 	// Source is a plugin marketplace's source (owner/repo).
 	Source string `json:"source,omitempty"`
+	// Project is the directory of the project a project MCP server is in,
+	// and Scope that project's root name, the same on every machine.
+	Project string `json:"project,omitempty"`
+	Scope   string `json:"scope,omitempty"`
+}
+
+// ID names the candidate in the registry: a project's MCP server is decided
+// per project.
+func (c Candidate) ID() string {
+	if c.Scope != "" {
+		return c.Scope + "/" + c.Name
+	}
+	return c.Name
 }
 
 // Env is what a scan looks at.
@@ -81,6 +95,9 @@ type Env struct {
 	Registry *registry.Registry
 	// Exists reports whether a command path exists on this machine.
 	Exists func(string) bool
+	// Projects are the projects whose MCP servers are compared; nil finds
+	// them (projects.Discover).
+	Projects []projects.Project
 }
 
 // short writes a path under the home directory as ~/…, for messages.
@@ -100,6 +117,11 @@ func Scan(env Env) ([]Candidate, error) {
 	var out []Candidate
 	out = append(out, skillCandidates(env, mcp)...)
 	out = append(out, mcpCandidates(env, mcp)...)
+	inProjects, err := projectMCPCandidates(env)
+	if err != nil {
+		return nil, err
+	}
+	out = append(out, inProjects...)
 	plugins, err := pluginCandidates(env)
 	if err != nil {
 		return nil, err

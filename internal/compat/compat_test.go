@@ -1,7 +1,9 @@
 package compat
 
 import (
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -217,5 +219,72 @@ source = "/Applications/ChatGPT.app/plugins"
 	}
 	if got["plugin/skill-hub"].Suggest != "codex plugin marketplace add sametbrr/skill-hub" {
 		t.Errorf("suggestion = %q", got["plugin/skill-hub"].Suggest)
+	}
+}
+
+func TestProjectMCP(t *testing.T) {
+	f := newFixture(t)
+	proj := filepath.Join(f.home, "work", "shop")
+	gitRepo(t, proj, "git@github.com:a/shop.git")
+	listed, _ := json.Marshal(map[string]any{"projects": map[string]any{proj: map[string]any{}}})
+	f.write(".claude.json", string(listed))
+	f.write("work/shop/.mcp.json", `{"mcpServers": {
+		"jira": {"type": "http", "url": "https://mcp.example.com/mcp"},
+		"both": {"type": "http", "url": "https://both.example.com"}}}`)
+	f.write("work/shop/.codex/config.toml", "[mcp_servers.both]\nurl = \"https://both.example.com\"\n"+
+		"[mcp_servers.docs]\nurl = \"https://docs.example.com/mcp\"\n")
+
+	got := f.scan(nil)
+	jira, ok := got["mcp/jira"]
+	if !ok || jira.Direction != ToCodex || jira.Project != proj || jira.Scope == "" {
+		t.Fatalf("jira: %+v", jira)
+	}
+	if jira.Verdict != Warn || !strings.Contains(firstText(jira), "trust") {
+		t.Errorf("an untrusted project should warn: %+v", jira)
+	}
+	if !strings.Contains(jira.Suggest, filepath.Join("work", "shop", ".codex", "config.toml")) {
+		t.Errorf("suggest = %q", jira.Suggest)
+	}
+	if docs := got["mcp/docs"]; docs.Direction != ToClaude || docs.Verdict != OK {
+		t.Errorf("docs: %+v", docs)
+	}
+	if _, ok := got["mcp/both"]; ok {
+		t.Error("a server both tools have is no candidate")
+	}
+
+	f.write(".codex/config.toml", "[projects.'"+proj+"']\ntrust_level = \"trusted\"\n")
+	reg, _ := registry.Load(t.TempDir())
+	reg.Set(registry.MCP, jira.ID(), registry.ClaudeOnly)
+	got = f.scan(reg)
+	if _, ok := got["mcp/jira"]; ok {
+		t.Error("a decided project server is asked about again")
+	}
+	if got["mcp/docs"].Verdict != OK {
+		t.Errorf("docs after trust: %+v", got["mcp/docs"])
+	}
+}
+
+func firstText(c Candidate) string {
+	if len(c.Reasons) == 0 {
+		return ""
+	}
+	return c.Reasons[0].Text
+}
+
+// gitRepo makes dir a git repository with an origin remote.
+func gitRepo(t *testing.T, dir, remote string) {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"init", "-q"}, {"remote", "add", "origin", remote}} {
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_SYSTEM="+os.DevNull)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
 	}
 }

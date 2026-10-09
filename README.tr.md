@@ -134,6 +134,8 @@ codeagent-sync mark mcp:bar --codex-only # record a decision, change nothing
 
 Paylaşılan skill'ler Codex'in okuduğu `~/.agents/skills` altında durur; Claude Code her birine `~/.claude/skills` içindeki bir bağlantıyla ulaşır. `scan` her gerekçenin dosyasını ve satırını gösterir: Claude Code değişkeni ya da aracı kullanan bir skill Claude Code'da kalır; bir MCP sunucusu, mümkünse iki aracın biçimleri arasında dönüştürülür. `--deep`, diğer aracın CLI'ından araçsız ve dosya erişimsiz bir ikinci görüş ister. Kararlar senkronlanan `~/.codeagent-sync/registry.yaml` dosyasında durur; bir makinede cevaplanan soru başka makinede tekrar sorulmaz.
 
+Bir projenin kendi MCP sunucuları da karşılaştırılır: `.mcp.json` içindekiler (Claude Code) ile `.codex/config.toml` içindekiler (Codex; bu dosyayı yalnız güvendiği projelerde okur). Paylaşmak, sunucuyu aynı projenin diğer dosyasına yazar ve karar o proje için kaydedilir; sunucu adı tek başına belirsizse `mcp:<proje kökü>/<sunucu>` biçiminde verilir.
+
 ### Bir makineyi diğeri gibi kurmak
 
 ```bash
@@ -154,6 +156,9 @@ Claude Code, Codex ve MCP sunucularının başlattığı programların her makin
 | `~/.agents/skills` | iki aracın da okuduğu skill'ler |
 | `~/skills-lock.json` | `npx skills` kilit dosyası |
 | `~/.codeagent-sync` | `registry.yaml` (paylaşım kararları), `sync.yaml` (kurallar), `machines/` (envanterler) |
+| her proje | `.mcp.json`, `CLAUDE.local.md`, `.claude/settings.json`, `.claude/settings.local.json`, `.claude/agents/`, `.claude/commands/`, `.claude/skills/`, `.codex/config.toml`, `.codex/agents/` — git'in takip ettiği dosyalar hariç |
+
+Projeler, Claude Code ile Codex'in proje olarak listelediği dizinlerdir. Yollarıyla değil git remote'larıyla tanınırlar; bu yüzden bir projenin ayarları, başka makinede nerede klonlanmış olursa olsun aynı projeye ulaşır. Bir repo `origin` adresiyle tanınır (https ve ssh biçimleri aynı sayılır), birkaç repo barındıran düz bir dizin ise o repoların remote'larıyla. Worktree'ler, remote'u olmayan repolar ve aynı projeye denk gelen iki dizin senkronlanmaz; bulunan projeleri `codeagent-sync paths` listeler.
 
 Hiç senkronlanmayanlar: oturumlar, geçmiş, kimlik bilgileri, önbellekler ve bir makineye ait olanlar — güvenilen projeler, onaylanan kancalar, `.claude.json` dosyasının geri kalanı. Komutu bir makinede kurulu olmayan MCP sunucusu, program kurulana kadar o makinede bekletilir.
 

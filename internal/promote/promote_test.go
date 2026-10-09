@@ -1,7 +1,9 @@
 package promote
 
 import (
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -240,5 +242,56 @@ func TestSharePluginRunsCodexAndRefusesBlocked(t *testing.T) {
 	}
 	if err := f.p.Share(f.candidate(registry.Plugin, "claude-plugins-official")); err == nil {
 		t.Error("a blocked marketplace was shared")
+	}
+}
+
+func TestShareProjectMCPBothWays(t *testing.T) {
+	f := newFixture(t)
+	proj := filepath.Join(f.home, "work", "shop")
+	gitRepo(t, proj, "git@github.com:a/shop.git")
+	listed, _ := json.Marshal(map[string]any{"projects": map[string]any{proj: map[string]any{}}})
+	f.write(".claude.json", string(listed))
+	f.write("work/shop/.mcp.json", `{"mcpServers": {"jira": {"type": "http", "url": "https://mcp.example.com/mcp"}}}`)
+	f.write("work/shop/.codex/config.toml", "model = \"x\"\n\n[mcp_servers.docs]\nurl = \"https://docs.example.com/mcp\"\n")
+
+	jira := f.candidate(registry.MCP, "jira")
+	if err := f.p.Share(jira); err != nil {
+		t.Fatal(err)
+	}
+	codex := f.read("work/shop/.codex/config.toml")
+	if !strings.Contains(codex, "[mcp_servers.jira]") || !strings.Contains(codex, "https://mcp.example.com/mcp") || !strings.Contains(codex, `model = "x"`) {
+		t.Errorf("project codex config = %q", codex)
+	}
+	if f.p.Registry.Get(registry.MCP, jira.ID()) != registry.Shared || f.p.Registry.Get(registry.MCP, "jira") != "" {
+		t.Errorf("decision recorded under the wrong name: %v", f.p.Registry.Names())
+	}
+	if _, err := os.Stat(filepath.Join(f.home, ".codex", "config.toml")); err == nil {
+		t.Error("the user-level Codex config was touched")
+	}
+
+	docs := f.candidate(registry.MCP, "docs")
+	if err := f.p.Share(docs); err != nil {
+		t.Fatal(err)
+	}
+	if mcp := f.read("work/shop/.mcp.json"); !strings.Contains(mcp, `"docs"`) || !strings.Contains(mcp, `"jira"`) {
+		t.Errorf("project .mcp.json = %q", mcp)
+	}
+}
+
+// gitRepo makes dir a git repository with an origin remote.
+func gitRepo(t *testing.T, dir, remote string) {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"init", "-q"}, {"remote", "add", "origin", remote}} {
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_SYSTEM="+os.DevNull)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
 	}
 }
