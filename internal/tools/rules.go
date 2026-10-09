@@ -159,6 +159,11 @@ func WithRules(roots []Root, r Rules) ([]Root, []error) {
 	}
 	var problems []error
 	apply := func(pattern string, include bool) {
+		if root, _, _ := strings.Cut(pattern, "/"); strings.HasPrefix(root, ProjectRootPrefix) {
+			if _, here := Find(roots, root); !here {
+				return // a project this machine does not have
+			}
+		}
 		if err := CheckRule(pattern, include, roots); err != nil {
 			problems = append(problems, err)
 			return

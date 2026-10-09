@@ -36,6 +36,9 @@ type Root struct {
 	// Hidden maps structured files to patterns of items that keep this
 	// machine's own version (set by the rules; see Rules).
 	Hidden map[string][]string
+	// Project is what identifies a project root on every machine (its git
+	// remotes; see package projects); empty for the tools' roots.
+	Project string
 }
 
 // Root names.
@@ -48,14 +51,18 @@ const (
 	Codeagent   = "codeagent"    // codeagent-sync's own shared decisions
 )
 
+// ProjectRootPrefix starts the names of project roots (package projects).
+// A machine that does not have a project has no root by its name.
+const ProjectRootPrefix = "project-"
+
 // LinkMarker is the file that turns a directory into a managed copy of a
 // link, for machines where links cannot be created (Windows without
 // Developer Mode). It holds the link target.
 const LinkMarker = ".codeagent-link"
 
-// commonExclude is never synced from any root: OS and editor litter, our own
+// CommonExclude is never synced from any root: OS and editor litter, our own
 // temporary and conflict files, and the marker of a managed link copy.
-var commonExclude = []string{
+var CommonExclude = []string{
 	"**/.DS_Store",
 	"**/Thumbs.db",
 	"**/desktop.ini",
@@ -98,7 +105,7 @@ func Roots(d platform.Dirs) []Root {
 				"statusline.sh",
 			},
 			// Skills the Claude app syncs by itself.
-			Exclude:    append([]string{"skills/synced/**"}, commonExclude...),
+			Exclude:    append([]string{"skills/synced/**"}, CommonExclude...),
 			Structured: map[string]string{"settings.json": structured.JSONKeys},
 			Needs:      Claude,
 		},
@@ -108,7 +115,7 @@ func Roots(d platform.Dirs) []Root {
 			Name:       ClaudeState,
 			Dir:        filepath.Dir(d.ClaudeJSON),
 			Include:    []string{".claude.json"},
-			Exclude:    commonExclude,
+			Exclude:    CommonExclude,
 			Structured: map[string]string{".claude.json": structured.ClaudeMCP},
 			Needs:      Claude,
 		},
@@ -116,7 +123,7 @@ func Roots(d platform.Dirs) []Root {
 			Name:       Codex,
 			Dir:        d.Codex,
 			Include:    []string{"AGENTS.md", "hooks.json", "config.toml", "agents/**"},
-			Exclude:    commonExclude,
+			Exclude:    CommonExclude,
 			Structured: map[string]string{"config.toml": structured.CodexConfig},
 			Needs:      Codex,
 		},
@@ -124,13 +131,13 @@ func Roots(d platform.Dirs) []Root {
 			Name:    Agents,
 			Dir:     d.Agents,
 			Include: []string{"skills/**"},
-			Exclude: commonExclude,
+			Exclude: CommonExclude,
 		},
 		{
 			Name:    Home,
 			Dir:     d.Home,
 			Include: []string{"skills-lock.json"},
-			Exclude: commonExclude,
+			Exclude: CommonExclude,
 		},
 		{
 			// Only the decisions about what is shared; the configuration,
@@ -138,7 +145,7 @@ func Roots(d platform.Dirs) []Root {
 			Name:       Codeagent,
 			Dir:        d.State,
 			Include:    []string{"registry.yaml", SharedRulesFile, "machines/*.yaml"},
-			Exclude:    commonExclude,
+			Exclude:    CommonExclude,
 			Structured: map[string]string{"registry.yaml": structured.Decisions},
 		},
 	}

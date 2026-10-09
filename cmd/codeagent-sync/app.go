@@ -10,6 +10,7 @@ import (
 	"github.com/sametbrr/codeagent-sync/internal/envelope"
 	"github.com/sametbrr/codeagent-sync/internal/homepath"
 	"github.com/sametbrr/codeagent-sync/internal/platform"
+	"github.com/sametbrr/codeagent-sync/internal/projects"
 	"github.com/sametbrr/codeagent-sync/internal/registry"
 	"github.com/sametbrr/codeagent-sync/internal/storage"
 	"github.com/sametbrr/codeagent-sync/internal/tools"
@@ -68,11 +69,19 @@ func newEngine(dirs platform.Dirs, store storage.ObjectStore, cipher envelope.Ci
 // shared and the local rules. Rules that cannot apply are returned and
 // skipped.
 func syncRoots(dirs platform.Dirs) ([]tools.Root, []error) {
+	base := baseRoots(dirs)
 	shared, local, err := tools.LoadRules(dirs.State)
 	if err != nil {
-		return tools.Roots(dirs), []error{err}
+		return base, []error{err}
 	}
-	return tools.WithRules(tools.Roots(dirs), shared.Merge(local))
+	return tools.WithRules(base, shared.Merge(local))
+}
+
+// baseRoots returns the tools' roots and a root for each project found on
+// this machine.
+func baseRoots(dirs platform.Dirs) []tools.Root {
+	found, _ := projects.Discover(dirs)
+	return append(tools.Roots(dirs), projects.Roots(found)...)
 }
 
 // variants returns the skills marked as deliberately separate for each tool.

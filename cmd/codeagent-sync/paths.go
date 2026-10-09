@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sametbrr/codeagent-sync/internal/platform"
+	"github.com/sametbrr/codeagent-sync/internal/projects"
 	"github.com/sametbrr/codeagent-sync/internal/tools"
 )
 
@@ -68,7 +69,7 @@ never synced.`,
 	}
 	roots := func() []tools.Root {
 		dirs, _ := platform.LocalDirs()
-		return tools.Roots(dirs)
+		return baseRoots(dirs)
 	}
 	cmd.AddCommand(
 		&cobra.Command{Use: "list", Short: "Show what is synced", Args: cobra.NoArgs,
@@ -114,10 +115,13 @@ type pathsState struct {
 		Local  tools.Rules `json:"local"`
 	} `json:"rules"`
 	Problems []string `json:"problems,omitempty"`
+	// SkippedProjects are project directories that are not synced.
+	SkippedProjects []projects.Skipped `json:"skipped_projects,omitempty"`
 }
 
 type pathsRoot struct {
 	Name    string              `json:"name"`
+	Project string              `json:"project,omitempty"`
 	Dir     string              `json:"dir"`
 	Include []string            `json:"include"`
 	Exclude []string            `json:"exclude"`
@@ -139,8 +143,9 @@ func (a *app) pathsList() error {
 		st.Problems = append(st.Problems, p.Error())
 	}
 	for _, r := range roots {
-		st.Roots = append(st.Roots, pathsRoot{Name: r.Name, Dir: r.Dir, Include: r.Include, Exclude: r.Exclude, Hidden: r.Hidden})
+		st.Roots = append(st.Roots, pathsRoot{Name: r.Name, Project: r.Project, Dir: r.Dir, Include: r.Include, Exclude: r.Exclude, Hidden: r.Hidden})
 	}
+	_, st.SkippedProjects = projects.Discover(dirs)
 	if a.jsonOut {
 		enc := json.NewEncoder(a.out)
 		enc.SetIndent("", "  ")
@@ -148,6 +153,9 @@ func (a *app) pathsList() error {
 	}
 	for _, r := range st.Roots {
 		a.printf("%s%s%s  %s\n", colorBold, r.Name, colorReset, homeRelative(r.Dir, dirs.Home))
+		if r.Project != "" {
+			a.printf("    project: %s\n", r.Project)
+		}
 		a.printf("    include: %s\n", strings.Join(r.Include, ", "))
 		if ex := withoutLitter(r.Exclude); len(ex) > 0 {
 			a.printf("    %sexclude: %s%s\n", colorDim, strings.Join(ex, ", "), colorReset)
@@ -169,6 +177,12 @@ func (a *app) pathsList() error {
 		}
 		for _, p := range set.rules.Exclude {
 			a.printf("    - %s\n", p)
+		}
+	}
+	if len(st.SkippedProjects) > 0 {
+		a.printf("\n%sProjects not synced:%s\n", colorBold, colorReset)
+		for _, sk := range st.SkippedProjects {
+			a.printf("    %s  %s%s%s\n", homeRelative(sk.Dir, dirs.Home), colorDim, sk.Reason, colorReset)
 		}
 	}
 	for _, p := range st.Problems {

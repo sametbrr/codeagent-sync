@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,6 +17,7 @@ import (
 	"github.com/sametbrr/codeagent-sync/internal/engine"
 	"github.com/sametbrr/codeagent-sync/internal/entry"
 	"github.com/sametbrr/codeagent-sync/internal/platform"
+	"github.com/sametbrr/codeagent-sync/internal/projects"
 )
 
 type syncMode int
@@ -142,10 +145,28 @@ func ago(d time.Duration) string {
 // displayPath shows a key as <root>/<rel>.
 func displayPath(key string) string {
 	if root, rel, ok := entry.ParseKey(key); ok {
+		if dir, ok := projectDirs()[root]; ok {
+			return dir + "/" + rel
+		}
 		return root + "/" + rel
 	}
 	return key
 }
+
+// projectDirs maps the project roots of this machine to their directories,
+// as shown to the user: a project root's name says nothing by itself.
+var projectDirs = sync.OnceValue(func() map[string]string {
+	out := map[string]string{}
+	dirs, err := platform.LocalDirs()
+	if err != nil {
+		return out
+	}
+	found, _ := projects.Discover(dirs)
+	for _, p := range found {
+		out[p.Root()] = filepath.ToSlash(homeRelative(p.Dir, dirs.Home))
+	}
+	return out
+})
 
 // jsonResult is the --json form of a run.
 type jsonResult struct {
@@ -289,6 +310,11 @@ func (a *app) printList(paths []string) {
 func keyFromPath(eng *engine.Engine, arg string) (string, error) {
 	if _, _, ok := entry.ParseKey(arg); ok {
 		return arg, nil
+	}
+	if rest, ok := strings.CutPrefix(arg, "~/"); ok {
+		if dirs, err := platform.LocalDirs(); err == nil {
+			arg = filepath.Join(dirs.Home, filepath.FromSlash(rest)) // a displayed project path
+		}
 	}
 	if root, rel, ok := strings.Cut(arg, "/"); ok {
 		for _, r := range eng.Roots {
