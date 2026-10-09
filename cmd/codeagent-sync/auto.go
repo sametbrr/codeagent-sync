@@ -83,6 +83,10 @@ machines too. Codex runs new hooks only after you trust them in /hooks.`,
 	return cmd
 }
 
+// launcherEnv names the launcher that started the program (set by the npm
+// package's wrapper).
+const launcherEnv = "CODEAGENT_SYNC_LAUNCHER"
+
 // program returns how hooks start this codeagent-sync: through the name
 // PATH finds for it when that is the same file (a package manager's link
 // outlives upgrades), otherwise by the path it runs from.
@@ -96,6 +100,14 @@ func program(home string) (hooks.Program, error) {
 	}
 	if onPath, err := exec.LookPath("codeagent-sync"); err == nil && filepath.IsAbs(onPath) && sameFile(onPath, exe) {
 		exe = onPath
+	}
+	// The npm package's launcher, when the package manager's link has the
+	// program's usual place (~/.local/bin) and the program lies elsewhere:
+	// the hooks start the launcher, at the same path on every machine.
+	if launcher := os.Getenv(launcherEnv); filepath.IsAbs(launcher) {
+		if _, err := os.Stat(launcher); err == nil {
+			exe = launcher
+		}
 	}
 	if name := strings.TrimSuffix(filepath.Base(exe), ".exe"); name != "codeagent-sync" {
 		return hooks.Program{}, fmt.Errorf("the hooks look for a program named codeagent-sync; rename %s", exe)

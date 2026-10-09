@@ -56,6 +56,8 @@ pnpm add -g codeagent-sync
 
 Paket, sistemine uygun programı sürümün checksum'larıyla doğrulayıp `~/.local/bin/codeagent-sync` konumuna kurar (Windows'ta `%USERPROFILE%\.local\bin`). pnpm kurulum betiklerini varsayılan olarak çalıştırmaz; o durumda program ilk çalıştırmada kurulur. Her makinede aynı yerde tut: otomatik senkronun kancaları programı oradan başlatır. `codeagent-sync update` onu en son sürümle değiştirir.
 
+Paket yöneticisi kendi başlatıcısını aynı yola bağlıyorsa (npm'in global dizini `~/.local`, pnpm'in `PNPM_HOME` değeri `~/.local/bin` ise) program `~/.codeagent-sync/bin` altına kurulur; `~/.local/bin/codeagent-sync` başlatıcıda kalır ve kancalar başlatıcıyı çalıştırır. npm orada zaten duran bir programın üzerine yazmayı reddeder; böyle bir makinede npm ile kurmadan önce programı bir kez kenara al: `mkdir -p ~/.codeagent-sync/bin && mv ~/.local/bin/codeagent-sync ~/.codeagent-sync/bin/`.
+
 <details>
 <summary><strong>Hazır ikili dosyalar ve kaynaktan derleme</strong></summary>
 

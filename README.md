@@ -56,6 +56,8 @@ pnpm add -g codeagent-sync
 
 The package installs the program for your system at `~/.local/bin/codeagent-sync` (on Windows `%USERPROFILE%\.local\bin`), checked against the release's checksums. pnpm skips install scripts by default; the first run installs it then. Keep it at the same place on every machine: the hooks of automatic sync start it from there. `codeagent-sync update` replaces it with the latest release.
 
+When the package manager links its own launcher at that same path — npm with its global prefix at `~/.local`, pnpm with `PNPM_HOME` at `~/.local/bin` — the program goes to `~/.codeagent-sync/bin` instead, the launcher keeps `~/.local/bin/codeagent-sync`, and the hooks start the launcher. npm refuses to replace a program that is already there, so on such a machine move it aside once before installing with npm: `mkdir -p ~/.codeagent-sync/bin && mv ~/.local/bin/codeagent-sync ~/.codeagent-sync/bin/`.
+
 <details>
 <summary><strong>Release binaries and building from source</strong></summary>
 

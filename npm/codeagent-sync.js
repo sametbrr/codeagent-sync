@@ -3,6 +3,11 @@
 // ~/.local/bin (the place the hooks of automatic sync start it from), then
 // runs it with the given arguments. Runs as the postinstall script too; when
 // a package manager skips that (pnpm does by default), the first run installs.
+//
+// When the package manager links its own launcher at that very path (npm with
+// its global prefix at ~/.local, pnpm with PNPM_HOME at ~/.local/bin), the
+// program lives in ~/.codeagent-sync/bin instead and the launcher keeps the
+// path; the hooks then start the launcher, which runs the program.
 
 "use strict";
 
@@ -22,8 +27,56 @@ function installDir() {
   return process.env.CODEAGENT_SYNC_INSTALL_DIR || path.join(os.homedir(), ".local", "bin");
 }
 
+const PROGRAM = WINDOWS ? "codeagent-sync.exe" : "codeagent-sync";
+
+// asideDir holds the program when a package manager's launcher has its place.
+function asideDir() {
+  return path.join(os.homedir(), ".codeagent-sync", "bin");
+}
+
+function samePath(a, b) {
+  const norm = (p) => {
+    try { return fs.realpathSync(p); } catch (_) { return path.resolve(p); }
+  };
+  return norm(a) === norm(b);
+}
+
+// isLauncher reports whether the file at p is a script (a package manager's
+// launcher, or this wrapper through npm's link) rather than the program.
+function isLauncher(p) {
+  try {
+    const fd = fs.openSync(p, "r");
+    const head = Buffer.alloc(2);
+    fs.readSync(fd, head, 0, 2, 0);
+    fs.closeSync(fd);
+    return head.toString("latin1") === "#!";
+  } catch (_) {
+    return false;
+  }
+}
+
+// globalBinDir is the directory npm links this package's bin into, for a
+// global install (<prefix>/lib/node_modules/codeagent-sync, bin in
+// <prefix>/bin); "" otherwise.
+function globalBinDir() {
+  const modules = path.dirname(__dirname);
+  if (WINDOWS || path.basename(modules) !== "node_modules" || path.basename(path.dirname(modules)) !== "lib") {
+    return "";
+  }
+  return path.join(path.dirname(path.dirname(modules)), "bin");
+}
+
+// collides reports whether the package manager's launcher takes the
+// program's place.
+function collides() {
+  const dir = installDir();
+  if (isLauncher(path.join(dir, PROGRAM))) return true;
+  const bin = globalBinDir();
+  return bin !== "" && samePath(bin, dir);
+}
+
 function programPath() {
-  return path.join(installDir(), WINDOWS ? "codeagent-sync.exe" : "codeagent-sync");
+  return path.join(collides() ? asideDir() : installDir(), PROGRAM);
 }
 
 function assetName() {
@@ -133,7 +186,12 @@ async function main() {
     process.stderr.write(`codeagent-sync: ${err.message}\nDownload it from https://github.com/${REPO}/releases\n`);
     process.exit(1);
   }
-  const res = spawnSync(program, args, { stdio: "inherit" });
+  const env = { ...process.env };
+  if (!samePath(path.dirname(program), installDir())) {
+    // Tell the program how it is started, for the hooks it writes.
+    env.CODEAGENT_SYNC_LAUNCHER = path.join(installDir(), PROGRAM);
+  }
+  const res = spawnSync(program, args, { stdio: "inherit", env });
   if (res.error) {
     process.stderr.write(`codeagent-sync: ${res.error.message}\n`);
     process.exit(1);

@@ -310,3 +310,31 @@ func TestMachinesShowWhatIsMissingHere(t *testing.T) {
 		t.Errorf("machines = %d, missing here = %+v", len(got.Machines), got.MissingHere)
 	}
 }
+
+func TestHooksStartTheNpmLauncher(t *testing.T) {
+	home := t.TempDir()
+	aside := filepath.Join(home, ".codeagent-sync", "bin", "codeagent-sync")
+	launcher := filepath.Join(home, ".local", "bin", "codeagent-sync")
+	for _, p := range []string{aside, launcher} {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("#!/bin/sh\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	executable = func() (string, error) { return aside, nil }
+	t.Cleanup(func() { executable = os.Executable })
+
+	if p, err := program(home); err != nil || p.Path != aside {
+		t.Errorf("without a launcher: %+v, %v", p, err)
+	}
+	t.Setenv(launcherEnv, launcher)
+	if p, err := program(home); err != nil || p.Path != launcher {
+		t.Errorf("with the npm launcher: %+v, %v", p, err)
+	}
+	t.Setenv(launcherEnv, filepath.Join(home, "missing", "codeagent-sync"))
+	if p, err := program(home); err != nil || p.Path != aside {
+		t.Errorf("with a missing launcher: %+v, %v", p, err)
+	}
+}
