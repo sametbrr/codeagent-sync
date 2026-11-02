@@ -51,3 +51,29 @@ func TestConditionsFor(t *testing.T) {
 		}
 	}
 }
+
+func TestCredentialsType(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    string
+		wantErr bool
+	}{
+		{"service account", `{"type":"service_account"}`, "service_account", false},
+		{"authorized user", `{"type":"authorized_user"}`, "authorized_user", false},
+		{"external account rejected", `{"type":"external_account"}`, "", true},
+		{"missing type rejected", `{}`, "", true},
+		{"invalid json rejected", `not json`, "", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := credentialsType([]byte(c.raw))
+			if (err != nil) != c.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, c.wantErr)
+			}
+			if string(got) != c.want {
+				t.Fatalf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}

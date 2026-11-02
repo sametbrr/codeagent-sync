@@ -2,6 +2,7 @@ package gcs
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +16,27 @@ import (
 
 	appstorage "github.com/sametbrr/codeagent-sync/internal/storage"
 )
+
+// credentialsType reads the "type" field of a Google credentials JSON and accepts only
+// the two key types codeagent-sync supports: service account and authorized user.
+// Loading the declared type explicitly (instead of letting the library guess) keeps an
+// unexpected credential type, such as an external account with attacker-chosen URLs,
+// from being loaded.
+func credentialsType(raw []byte) (option.CredentialsType, error) {
+	var head struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &head); err != nil {
+		return "", fmt.Errorf("invalid GCS credentials JSON: %w", err)
+	}
+	switch option.CredentialsType(head.Type) {
+	case option.ServiceAccount:
+		return option.ServiceAccount, nil
+	case option.AuthorizedUser:
+		return option.AuthorizedUser, nil
+	}
+	return "", fmt.Errorf("unsupported GCS credentials type %q: use a service account or authorized user key", head.Type)
+}
 
 func init() {
 	appstorage.NewGCS = New
@@ -50,9 +72,22 @@ func New(cfg *appstorage.StorageConfig) (appstorage.ObjectStore, error) {
 			home, _ := os.UserHomeDir()
 			credPath = home + credPath[1:]
 		}
-		opts = append(opts, option.WithCredentialsFile(credPath))
+		raw, err := os.ReadFile(credPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read GCS credentials file: %w", err)
+		}
+		credType, err := credentialsType(raw)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, option.WithAuthCredentialsFile(credType, credPath))
 	} else if cfg.CredentialsJSON != "" {
-		opts = append(opts, option.WithCredentialsJSON([]byte(cfg.CredentialsJSON)))
+		raw := []byte(cfg.CredentialsJSON)
+		credType, err := credentialsType(raw)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, option.WithAuthCredentialsJSON(credType, raw))
 	}
 	// If no credentials specified, the client will use Application Default Credentials
 
