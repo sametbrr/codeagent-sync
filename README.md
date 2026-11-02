@@ -1,6 +1,9 @@
-[![CI](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sametbrr/codeagent-sync.svg)](https://pkg.go.dev/github.com/sametbrr/codeagent-sync)
+[![GitHub release](https://img.shields.io/github/v/release/sametbrr/codeagent-sync?display_name=tag&sort=semver)](https://github.com/sametbrr/codeagent-sync/releases/latest)
+[![npm version](https://badge.fury.io/js/codeagent-sync.svg)](https://badge.fury.io/js/codeagent-sync)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[Quick Start](#quick-start) • [Installation](#installation) • [Usage](#usage) • [Troubleshooting](#troubleshooting) • [What Is Synced](#what-is-synced) • [Security](#security)
 
 # codeagent-sync
 
@@ -8,7 +11,7 @@ Keeps Claude Code and Codex configuration — instructions, settings, skills, ag
 
 > 🇹🇷 Türkçe için [README.tr.md](README.tr.md)
 
-[Quick Start](#quick-start) • [Installation](#installation) • [Usage](#usage) • [What Is Synced](#what-is-synced) • [Troubleshooting](#troubleshooting) • [Security](#security)
+**One setup for Claude Code and Codex on every machine.** Change a setting or add a skill or MCP server on one machine, and the others get it on their next sync — merged item by item, not overwritten. Everything is encrypted before it leaves the machine, so a storage bucket or WebDAV server is all the infrastructure you need.
 
 ---
 
@@ -25,16 +28,18 @@ On every other machine: `codeagent-sync join-code` on a machine that is set up, 
 
 ## Features
 
-- **Both tools, one layout** — `~/.claude`, `~/.claude.json` (MCP servers only), `~/.codex` and the skills both tools read in `~/.agents/skills`
-- **End-to-end encrypted** — every file is encrypted with [age](https://age-encryption.org) before it leaves the machine; the storage sees names and sizes only
-- **Merges, not overwrites** — settings files merge item by item, so two machines changing different settings never conflict; comments in `config.toml` stay
-- **Portable paths** — home-directory paths are translated, so machines with other user names or systems get their own
-- **Shares between tools** — judges whether a skill or MCP server one tool has works in the other, and shares it when you agree
-- **Automatic** — hooks sync in the background and tell the agent about conflicts and new things to share, once
-- **Your choice of what syncs** — include and exclude rules for every machine or just one, down to a single setting
-- **Machine inventory** — shows how the tools and MCP programs are installed elsewhere and what this machine lacks
-- **Safe** — backups and `undo` for every change, conflicts set aside instead of overwritten, conditional writes against races
-- **Storage** — Cloudflare R2, Amazon S3 and S3-compatible services, Google Cloud Storage, WebDAV
+| | |
+|---|---|
+| **Both tools, one layout** | `~/.claude`, `~/.claude.json` (MCP servers only), `~/.codex` and the skills both tools read in `~/.agents/skills` |
+| **End-to-end encrypted** | Every file is encrypted with [age](https://age-encryption.org) before it leaves the machine; the storage sees names and sizes only |
+| **Merges, not overwrites** | Settings files merge item by item, so two machines changing different settings never conflict; comments in `config.toml` stay |
+| **Portable paths** | Home-directory paths are translated, so machines with other user names or systems get their own |
+| **Shares between tools** | Judges whether a skill or MCP server one tool has works in the other, and shares it when you agree |
+| **Automatic** | Hooks sync in the background and tell the agent about conflicts and new things to share, once |
+| **Your choice of what syncs** | Include and exclude rules for every machine or just one, down to a single setting |
+| **Machine inventory** | Shows how the tools and MCP programs are installed elsewhere and what this machine lacks |
+| **Safe** | Backups and `undo` for every change, conflicts set aside instead of overwritten, conditional writes against races |
+| **Storage** | Cloudflare R2, Amazon S3 and S3-compatible services, Google Cloud Storage, WebDAV |
 
 ---
 
@@ -43,7 +48,7 @@ On every other machine: `codeagent-sync join-code` on a machine that is set up, 
 - macOS, Linux or Windows
 - Claude Code and/or Codex (a tool that is not installed on a machine is left alone there)
 - A bucket on Cloudflare R2, S3, GCS or a WebDAV server, with credentials that can read and write it
-- Node.js 18 or later to install with npm or pnpm (or a release binary, or Go 1.24 or later to build from source)
+- Node.js 22 or later (LTS) to install with npm or pnpm (or a release binary, or Go 1.24 or later to build from source)
 
 ---
 
@@ -72,9 +77,47 @@ make install
 
 </details>
 
+### Uninstall
+
+```bash
+codeagent-sync auto disable       # remove the hooks; other machines follow on their next sync
+npm uninstall -g codeagent-sync   # or: pnpm remove -g codeagent-sync
+rm -f ~/.local/bin/codeagent-sync
+rm -rf ~/.codeagent-sync          # local rules, decisions and setup
+```
+
+Your Claude Code and Codex files stay as they are. The encrypted copies stay in the bucket until you delete them there.
+
 ---
 
 ## Usage
+
+```bash
+# Setup
+codeagent-sync init                       # storage, passphrase, first sync
+codeagent-sync join-code                  # print a code that sets up another machine
+codeagent-sync init --join <code>         # set up a new machine from that code
+codeagent-sync auto enable                # sync automatically through hooks
+
+# Daily use
+codeagent-sync sync                       # download others' changes, upload this machine's
+codeagent-sync pull                       # download only
+codeagent-sync push                       # upload only
+codeagent-sync status                     # what a sync would do, changing nothing
+codeagent-sync conflicts                  # versions set aside because of conflicts
+codeagent-sync undo                       # take back a change
+codeagent-sync paths                      # what syncs, and the rules
+codeagent-sync scan                       # what only one tool has
+codeagent-sync share <name>               # share it with the other tool
+codeagent-sync unshare <name> --to claude # keep it with one tool again
+codeagent-sync mark <name> --codex-only   # record a decision, change nothing
+codeagent-sync machines                   # how each machine is set up, what this one lacks
+
+# Maintenance
+codeagent-sync doctor                     # check setup, storage, key and hooks
+codeagent-sync update                     # replace the program with the latest release
+codeagent-sync auto disable               # remove the hooks
+```
 
 ### Set up the first machine
 
@@ -148,6 +191,18 @@ Shows how Claude Code, Codex and the programs MCP servers start are installed on
 
 ---
 
+## Troubleshooting
+
+**Something does not sync, or you are not sure why** — run `codeagent-sync doctor`: it checks the setup, storage, key, conditional writes, conflicts, rules, hooks and what this machine lacks.
+
+**"the credentials may not use the bucket (HTTP 403)"** — the API token is limited to other buckets, or the bucket does not exist and the token may not create it. Create the bucket and give the token read and write access to it.
+
+**Codex does not sync automatically** — Codex skips hooks it has not been told to trust: type `/hooks` in Codex and trust the codeagent-sync hooks. `codeagent-sync auto status` shows whether it does.
+
+**A skill works in one tool but not the other** — `codeagent-sync status --check` lists skills and agents a tool would ignore, such as a `SKILL.md` that is a symlink.
+
+---
+
 ## What Is Synced
 
 | Where | What |
@@ -166,18 +221,6 @@ Never synced: sessions, history, credentials, caches, and what belongs to one ma
 
 ---
 
-## Troubleshooting
-
-**Something does not sync, or you are not sure why** — run `codeagent-sync doctor`: it checks the setup, storage, key, conditional writes, conflicts, rules, hooks and what this machine lacks.
-
-**"the credentials may not use the bucket (HTTP 403)"** — the API token is limited to other buckets, or the bucket does not exist and the token may not create it. Create the bucket and give the token read and write access to it.
-
-**Codex does not sync automatically** — Codex skips hooks it has not been told to trust: type `/hooks` in Codex and trust the codeagent-sync hooks. `codeagent-sync auto status` shows whether it does.
-
-**A skill works in one tool but not the other** — `codeagent-sync status --check` lists skills and agents a tool would ignore, such as a `SKILL.md` that is a symlink.
-
----
-
 ## Security
 
 Every file is encrypted with age before upload; the key is derived from the passphrase with Argon2id and a random salt kept in the bucket, and a key check catches a wrong passphrase before anything is touched. The storage sees file names and sizes, not contents. Conditional writes keep two machines syncing at once from overwriting each other; deletions are recorded, not lost.
@@ -190,6 +233,23 @@ Started as a fork of [claude-sync](https://github.com/tawanorg/claude-sync) (MIT
 
 ---
 
+## Contributing
+
+- Questions and ideas: [Discussions](https://github.com/sametbrr/codeagent-sync/discussions)
+- Bugs: [issue tracker](https://github.com/sametbrr/codeagent-sync/issues)
+- Pull requests: read the [contribution guide](https://github.com/sametbrr/.github/blob/main/CONTRIBUTING.md) first
+- Security reports: follow the [security policy](https://github.com/sametbrr/codeagent-sync/security/policy), not a public issue
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+[Report Bug](https://github.com/sametbrr/codeagent-sync/issues) · [Request Feature](https://github.com/sametbrr/codeagent-sync/issues)
+
+</div>

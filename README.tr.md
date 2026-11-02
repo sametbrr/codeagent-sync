@@ -1,6 +1,9 @@
-[![CI](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/sametbrr/codeagent-sync/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sametbrr/codeagent-sync.svg)](https://pkg.go.dev/github.com/sametbrr/codeagent-sync)
+[![GitHub release](https://img.shields.io/github/v/release/sametbrr/codeagent-sync?display_name=tag&sort=semver)](https://github.com/sametbrr/codeagent-sync/releases/latest)
+[![npm version](https://badge.fury.io/js/codeagent-sync.svg)](https://badge.fury.io/js/codeagent-sync)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[Hızlı Başlangıç](#hızlı-başlangıç) • [Kurulum](#kurulum) • [Kullanım](#kullanım) • [Sorun Giderme](#sorun-giderme) • [Neler Senkronlanır](#neler-senkronlanır) • [Güvenlik](#güvenlik)
 
 # codeagent-sync
 
@@ -8,15 +11,15 @@ Claude Code ve Codex yapılandırmasını — talimatlar, ayarlar, skill'ler, ag
 
 > 🇬🇧 For English see [README.md](README.md)
 
-[Hızlı Başlangıç](#hızlı-başlangıç) • [Kurulum](#kurulum) • [Kullanım](#kullanım) • [Neler Senkronlanır](#neler-senkronlanır) • [Sorun Giderme](#sorun-giderme) • [Güvenlik](#güvenlik)
+**Claude Code ve Codex için her makinede tek kurulum.** Bir makinede bir ayarı değiştir ya da bir skill veya MCP sunucusu ekle; diğer makineler bir sonraki senkronda alır — üzerine yazılmaz, öğe öğe birleştirilir. Her şey makineden çıkmadan şifrelenir; gereken tek altyapı bir depolama kovası ya da WebDAV sunucusudur.
 
 ---
 
 ## Hızlı Başlangıç
 
 ```bash
-npm install -g codeagent-sync   # or: pnpm add -g codeagent-sync
-codeagent-sync init             # storage, passphrase, first sync
+npm install -g codeagent-sync   # ya da: pnpm add -g codeagent-sync
+codeagent-sync init             # depolama, parola, ilk senkron
 ```
 
 Diğer her makinede: kurulu bir makinede `codeagent-sync join-code`, yeni makinede `codeagent-sync init --join <kod>`.
@@ -25,16 +28,18 @@ Diğer her makinede: kurulu bir makinede `codeagent-sync join-code`, yeni makine
 
 ## Özellikler
 
-- **İki araç, tek düzen** — `~/.claude`, `~/.claude.json` (yalnız MCP sunucuları), `~/.codex` ve iki aracın da okuduğu `~/.agents/skills` altındaki skill'ler
-- **Uçtan uca şifreli** — her dosya makineden çıkmadan önce [age](https://age-encryption.org) ile şifrelenir; depolama yalnız dosya adlarını ve boyutlarını görür
-- **Üzerine yazmaz, birleştirir** — ayar dosyaları öğe öğe birleşir; iki makine farklı ayarları değiştirdiğinde çakışma olmaz, `config.toml` içindeki yorumlar korunur
-- **Taşınabilir yollar** — ev dizini yolları çevrilir; kullanıcı adı ya da işletim sistemi farklı makineler kendi yollarını alır
-- **Araçlar arası paylaşım** — bir araçtaki skill ya da MCP sunucusunun diğerinde çalışıp çalışmayacağını değerlendirir, onaylarsan paylaştırır
-- **Otomatik** — kancalar arka planda senkronlar, çakışmaları ve paylaşılabilecek yenilikleri ajana bir kez bildirir
-- **Neyin senkronlanacağını sen seçersin** — tüm makineler ya da tek makine için include ve exclude kuralları, tek bir ayara kadar
-- **Makine envanteri** — araçların ve MCP programlarının diğer makinelerde nasıl kurulduğunu ve bu makinede neyin eksik olduğunu gösterir
-- **Güvenli** — her değişiklik için yedek ve `undo`, çakışmada üzerine yazmak yerine kenara ayırma, yarışlara karşı koşullu yazma
-- **Depolama** — Cloudflare R2, Amazon S3 ve S3 uyumlu servisler, Google Cloud Storage, WebDAV
+| | |
+|---|---|
+| **İki araç, tek düzen** | `~/.claude`, `~/.claude.json` (yalnız MCP sunucuları), `~/.codex` ve iki aracın da okuduğu `~/.agents/skills` altındaki skill'ler |
+| **Uçtan uca şifreli** | Her dosya makineden çıkmadan önce [age](https://age-encryption.org) ile şifrelenir; depolama yalnız dosya adlarını ve boyutlarını görür |
+| **Üzerine yazmaz, birleştirir** | Ayar dosyaları öğe öğe birleşir; iki makine farklı ayarları değiştirdiğinde çakışma olmaz, `config.toml` içindeki yorumlar korunur |
+| **Taşınabilir yollar** | Ev dizini yolları çevrilir; kullanıcı adı ya da işletim sistemi farklı makineler kendi yollarını alır |
+| **Araçlar arası paylaşım** | Bir araçtaki skill ya da MCP sunucusunun diğerinde çalışıp çalışmayacağını değerlendirir, onaylarsan paylaştırır |
+| **Otomatik** | Kancalar arka planda senkronlar, çakışmaları ve paylaşılabilecek yenilikleri ajana bir kez bildirir |
+| **Neyin senkronlanacağını sen seçersin** | Tüm makineler ya da tek makine için include ve exclude kuralları, tek bir ayara kadar |
+| **Makine envanteri** | Araçların ve MCP programlarının diğer makinelerde nasıl kurulduğunu ve bu makinede neyin eksik olduğunu gösterir |
+| **Güvenli** | Her değişiklik için yedek ve `undo`, çakışmada üzerine yazmak yerine kenara ayırma, yarışlara karşı koşullu yazma |
+| **Depolama** | Cloudflare R2, Amazon S3 ve S3 uyumlu servisler, Google Cloud Storage, WebDAV |
 
 ---
 
@@ -43,7 +48,7 @@ Diğer her makinede: kurulu bir makinede `codeagent-sync join-code`, yeni makine
 - macOS, Linux ya da Windows
 - Claude Code ve/veya Codex (bir makinede kurulu olmayan araca orada dokunulmaz)
 - Cloudflare R2, S3, GCS ya da bir WebDAV sunucusunda bir kova ve ona okuma-yazma yetkisi olan kimlik bilgileri
-- npm ya da pnpm ile kurmak için Node.js 18 ya da üzeri (veya hazır ikili dosya, ya da kaynaktan derlemek için Go 1.24 ve üzeri)
+- npm ya da pnpm ile kurmak için Node.js 22 ya da üzeri (LTS); ya da hazır ikili dosya, veya kaynaktan derlemek için Go 1.24 ya da üzeri
 
 ---
 
@@ -72,9 +77,47 @@ make install
 
 </details>
 
+### Kaldırma
+
+```bash
+codeagent-sync auto disable       # kancaları kaldır; diğer makineler bir sonraki senkronda aynısını yapar
+npm uninstall -g codeagent-sync   # ya da: pnpm remove -g codeagent-sync
+rm -f ~/.local/bin/codeagent-sync
+rm -rf ~/.codeagent-sync          # yerel kurallar, kararlar ve kurulum
+```
+
+Claude Code ve Codex dosyaların olduğu gibi kalır. Şifreli kopyalar, sen oradan silene kadar kovada durur.
+
 ---
 
 ## Kullanım
+
+```bash
+# Kurulum
+codeagent-sync init                       # depolama, parola, ilk senkron
+codeagent-sync join-code                  # başka bir makineyi kuracak kodu yazdır
+codeagent-sync init --join <code>         # yeni makineyi bu kodla kur
+codeagent-sync auto enable                # kancalarla otomatik senkron
+
+# Günlük kullanım
+codeagent-sync sync                       # diğerlerinin değişikliklerini indir, bu makinedekileri yükle
+codeagent-sync pull                       # yalnız indir
+codeagent-sync push                       # yalnız yükle
+codeagent-sync status                     # hiçbir şeyi değiştirmeden senkronun ne yapacağını göster
+codeagent-sync conflicts                  # çakışma yüzünden kenara ayrılan sürümler
+codeagent-sync undo                       # bir değişikliği geri al
+codeagent-sync paths                      # neler senkronlanıyor, kurallar neler
+codeagent-sync scan                       # yalnız bir araçta olanlar
+codeagent-sync share <name>               # diğer araçla paylaş
+codeagent-sync unshare <name> --to claude # yeniden tek araçta tut
+codeagent-sync mark <name> --codex-only   # kararı kaydet, hiçbir şeyi değiştirme
+codeagent-sync machines                   # her makine nasıl kurulu, bu makinede ne eksik
+
+# Bakım
+codeagent-sync doctor                     # kurulumu, depolamayı, anahtarı ve kancaları denetle
+codeagent-sync update                     # programı en son sürümle değiştir
+codeagent-sync auto disable               # kancaları kaldır
+```
 
 ### İlk makineyi kurmak
 
@@ -87,8 +130,8 @@ codeagent-sync init
 ### Başka bir makine eklemek
 
 ```bash
-codeagent-sync join-code                 # on a machine that is set up
-codeagent-sync init --join cas1-…        # on the new machine, same passphrase
+codeagent-sync join-code                 # kurulu bir makinede
+codeagent-sync init --join cas1-…        # yeni makinede, aynı parolayla
 ```
 
 Kod, depolama ayarlarını kovanın parolasıyla şifreli taşır. Bir makinenin ilk senkronunda yalnız o makinede olan dosyalar senin onayınla yüklenir; diğer makinelerden gelen dosyalar yedeklenerek yazılır.
@@ -96,10 +139,10 @@ Kod, depolama ayarlarını kovanın parolasıyla şifreli taşır. Bir makinenin
 ### Günlük kullanım
 
 ```bash
-codeagent-sync sync        # download others' changes, upload this machine's
-codeagent-sync status      # what a sync would do, changing nothing
-codeagent-sync conflicts   # versions set aside; settle with: conflicts resolve <path> --keep local|remote
-codeagent-sync undo        # take back a change; undo --list shows them all
+codeagent-sync sync        # diğerlerinin değişikliklerini indir, bu makinedekileri yükle
+codeagent-sync status      # hiçbir şeyi değiştirmeden senkronun ne yapacağını göster
+codeagent-sync conflicts   # kenara ayrılan sürümler; çözmek için: conflicts resolve <path> --keep local|remote
+codeagent-sync undo        # bir değişikliği geri al; undo --list hepsini gösterir
 ```
 
 `pull` ve `push` yalnız tek yönde senkronlar. `sync`, `status`, `scan`, `conflicts`, `doctor`, `paths`, `machines` ve `auto status` `--json` ile JSON çıktı verir.
@@ -115,12 +158,12 @@ Claude Code ve Codex'e kancalar ekler: oturum başladığında ve her yanıttan 
 ### Neyin senkronlanacağını seçmek
 
 ```bash
-codeagent-sync paths                                    # what syncs, and the rules
-codeagent-sync paths include claude/plans/**            # sync more
-codeagent-sync paths exclude claude/look-again/**       # sync less
-codeagent-sync paths exclude claude-state/.claude.json  # not Claude Code's MCP servers
+codeagent-sync paths                                    # neler senkronlanıyor, kurallar neler
+codeagent-sync paths include claude/plans/**            # daha fazlasını senkronla
+codeagent-sync paths exclude claude/look-again/**       # daha azını senkronla
+codeagent-sync paths exclude claude-state/.claude.json  # Claude Code'un MCP sunucuları hariç
 codeagent-sync paths exclude claude/settings.json#permissions --local
-codeagent-sync paths reset claude/plans/**              # drop a rule
+codeagent-sync paths reset claude/plans/**              # bir kuralı kaldır
 ```
 
 Kurallar `<kök>/<kalıp>` biçimindedir (kökler: `claude`, `codex`, `agents`, `claude-state`, `home`, `codeagent`). Senkronlanan `~/.codeagent-sync/sync.yaml` dosyasında durur, böylece her makine aynı kurala uyar; `--local` ile yalnız o makine için `sync.local.yaml` dosyasına yazılır. Dışarı alınan yol senkronlanmayı bırakır ama hiçbir yerde silinmez. `#` işaretinden sonra bir exclude, bir ayar dosyasının öğelerini adlandırır — `settings.json` anahtarları, `mcp_servers.*` gibi `config.toml` tabloları, `.claude.json` MCP sunucuları — ve her makine bu öğelerin kendi halini korur.
@@ -128,10 +171,10 @@ Kurallar `<kök>/<kalıp>` biçimindedir (kökler: `claude`, `codex`, `agents`, 
 ### Claude Code ile Codex arasında paylaşmak
 
 ```bash
-codeagent-sync scan                      # what only one tool has, and whether it works in the other
-codeagent-sync share skill:foo           # share it
-codeagent-sync unshare foo --to claude   # keep it with one tool again
-codeagent-sync mark mcp:bar --codex-only # record a decision, change nothing
+codeagent-sync scan                      # yalnız bir araçta olanlar ve diğerinde çalışıp çalışmadığı
+codeagent-sync share skill:foo           # paylaş
+codeagent-sync unshare foo --to claude   # yeniden tek araçta tut
+codeagent-sync mark mcp:bar --codex-only # kararı kaydet, hiçbir şeyi değiştirme
 ```
 
 Paylaşılan skill'ler Codex'in okuduğu `~/.agents/skills` altında durur; Claude Code her birine `~/.claude/skills` içindeki bir bağlantıyla ulaşır. `scan` her gerekçenin dosyasını ve satırını gösterir: Claude Code değişkeni ya da aracı kullanan bir skill Claude Code'da kalır; bir MCP sunucusu, mümkünse iki aracın biçimleri arasında dönüştürülür. `--deep`, diğer aracın CLI'ından araçsız ve dosya erişimsiz bir ikinci görüş ister. Kararlar senkronlanan `~/.codeagent-sync/registry.yaml` dosyasında durur; bir makinede cevaplanan soru başka makinede tekrar sorulmaz.
@@ -145,6 +188,18 @@ codeagent-sync machines
 ```
 
 Claude Code, Codex ve MCP sunucularının başlattığı programların her makinede nasıl kurulduğunu — sürümleri ve her birini kuran komutu (native kurucu, npm, Homebrew, pipx, uv, pip) — ve bu makinede neyin eksik olduğunu kurulum komutuyla birlikte gösterir. Senin onayın olmadan hiçbir şey kurulmaz.
+
+---
+
+## Sorun Giderme
+
+**Bir şey senkronlanmıyor ya da nedenini bilmiyorsun** — `codeagent-sync doctor` çalıştır: kurulumu, depolamayı, anahtarı, koşullu yazmayı, çakışmaları, kuralları, kancaları ve bu makinede eksik olanları denetler.
+
+**"the credentials may not use the bucket (HTTP 403)"** — API token'ı başka kovalarla sınırlı, ya da kova yok ve token onu oluşturamıyor. Kovayı oluştur ve token'a o kova için okuma-yazma yetkisi ver.
+
+**Codex otomatik senkronlamıyor** — Codex güvenmediği kancaları atlar: Codex'te `/hooks` yazıp codeagent-sync kancalarına güven. `codeagent-sync auto status` durumu gösterir.
+
+**Bir skill bir araçta çalışıyor, diğerinde çalışmıyor** — `codeagent-sync status --check` araçların yok sayacağı skill ve agent'ları listeler; örneğin sembolik bağlantı olan bir `SKILL.md`.
 
 ---
 
@@ -166,18 +221,6 @@ Hiç senkronlanmayanlar: oturumlar, geçmiş, kimlik bilgileri, önbellekler ve 
 
 ---
 
-## Sorun Giderme
-
-**Bir şey senkronlanmıyor ya da nedenini bilmiyorsun** — `codeagent-sync doctor` çalıştır: kurulumu, depolamayı, anahtarı, koşullu yazmayı, çakışmaları, kuralları, kancaları ve bu makinede eksik olanları denetler.
-
-**"the credentials may not use the bucket (HTTP 403)"** — API token'ı başka kovalarla sınırlı, ya da kova yok ve token onu oluşturamıyor. Kovayı oluştur ve token'a o kova için okuma-yazma yetkisi ver.
-
-**Codex otomatik senkronlamıyor** — Codex güvenmediği kancaları atlar: Codex'te `/hooks` yazıp codeagent-sync kancalarına güven. `codeagent-sync auto status` durumu gösterir.
-
-**Bir skill bir araçta çalışıyor, diğerinde çalışmıyor** — `codeagent-sync status --check` araçların yok sayacağı skill ve agent'ları listeler; örneğin sembolik bağlantı olan bir `SKILL.md`.
-
----
-
 ## Güvenlik
 
 Her dosya yüklenmeden önce age ile şifrelenir; anahtar parolandan Argon2id ve kovada tutulan rastgele bir tuzla türetilir, yanlış parola hiçbir şeye dokunulmadan anahtar kontrolüyle yakalanır. Depolama dosya adlarını ve boyutlarını görür, içerikleri göremez. Koşullu yazma, aynı anda senkronlayan iki makinenin birbirinin değişikliğini ezmesini önler; silmeler kaybolmaz, kayda geçer.
@@ -190,6 +233,23 @@ Her dosya yüklenmeden önce age ile şifrelenir; anahtar parolandan Argon2id ve
 
 ---
 
+## Katkıda Bulunma
+
+- Sorular ve fikirler: [Discussions](https://github.com/sametbrr/codeagent-sync/discussions)
+- Hatalar: [issue takibi](https://github.com/sametbrr/codeagent-sync/issues)
+- Pull request'ler: önce [katkı rehberini](https://github.com/sametbrr/.github/blob/main/CONTRIBUTING.md) okuyun
+- Güvenlik bildirimleri: herkese açık issue yerine [güvenlik politikasını](https://github.com/sametbrr/codeagent-sync/security/policy) izleyin
+
+---
+
 ## Lisans
 
 MIT — bkz. [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+[Hata Bildir](https://github.com/sametbrr/codeagent-sync/issues) · [Özellik İste](https://github.com/sametbrr/codeagent-sync/issues)
+
+</div>
