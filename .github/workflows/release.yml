@@ -2,7 +2,7 @@ name: Release
 
 # Push a tag like v0.1.0 to publish: the binaries and checksums.txt go to a
 # GitHub release, and the npm package (npm/) is published with the same
-# version when the repository has an NPM_TOKEN secret.
+# version through npm trusted publishing (OIDC).
 on:
   push:
     tags: ['v*']
@@ -46,6 +46,7 @@ jobs:
   npm:
     needs: build
     runs-on: ubuntu-latest
+    environment: npm
     steps:
       - uses: actions/checkout@v7
 
@@ -54,14 +55,11 @@ jobs:
           node-version: lts/*
           registry-url: 'https://registry.npmjs.org'
 
+      # npm trusted publishing (OIDC, environment npm): no token is stored; provenance is automatic.
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::warning::No NPM_TOKEN secret; skipping npm publish"
-            exit 0
-          fi
+          # Trusted publishing needs npm >= 11.5.1 (bundled with current Node LTS).
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); if (a<11||(a==11&&(b<5||(b==5&&c<1)))) { console.error("npm "+process.argv[1]+" is too old for trusted publishing"); process.exit(1) }' "$(npm --version)"
           # The package page shows the README packed with it (English only).
           cp README.md LICENSE THIRD_PARTY_NOTICES.md npm/
           cd npm
