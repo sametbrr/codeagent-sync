@@ -1,5 +1,7 @@
 # Dependabot: weekly, grouped version updates (max 5 open PRs per ecosystem).
 # Package ecosystems group minor and patch bumps into one PR; majors arrive one per PR.
+# Security fixes arrive as one grouped "dependencies" PR. Majors listed under ignore are
+# upgraded by hand (library compatibility floor, runtime-matched types, visual checks).
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -20,6 +22,9 @@ updates:
       gomod-minor-patch:
         patterns: ['*']
         update-types: [minor, patch]
+      dependencies:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /npm
@@ -30,3 +35,9 @@ updates:
       npm-minor-patch:
         patterns: ['*']
         update-types: [minor, patch]
+      dependencies:
+        applies-to: security-updates
+        patterns: ['*']
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
